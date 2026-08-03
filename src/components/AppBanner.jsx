@@ -1,0 +1,73 @@
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, Animated, Dimensions, Easing } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import api from '../api/api';
+import { useTheme } from '../context/ThemeContext';
+
+const W = Dimensions.get('window').width;
+const DURATION = 12000; // match website exactly
+
+export default function AppBanner() {
+  const { T } = useTheme();
+  const s = useMemo(() => makeStyles(T), [T]);
+  const insets = useSafeAreaInsets();
+  const [messages, setMessages] = useState([]);
+  const [idx,      setIdx]      = useState(0);
+  const x        = useRef(new Animated.Value(-W)).current;
+  const animRef  = useRef(null);
+
+  useEffect(() => {
+    api.get('/banners/public')
+      .then(r => setMessages(r.data.data || []))
+      .catch(() => {});
+  }, []);
+
+  // Cycle messages every 12 s — matches website's setInterval(duration * 1000)
+  useEffect(() => {
+    if (messages.length < 2) return;
+    const id = setInterval(() => setIdx(i => (i + 1) % messages.length), DURATION);
+    return () => clearInterval(id);
+  }, [messages.length]);
+
+  // Animation: matches website keyframes exactly
+  //   0 %  → 30 % (3600 ms) : translateX -100% → centered   (slide in, linear)
+  //   30 % → 60 % (3600 ms) : stays centred                 (pause)
+  //   60 % → 100% (4800 ms) : centered → 100vw + 100%       (slide out, linear)
+  useEffect(() => {
+    if (!messages.length) return;
+    if (animRef.current) animRef.current.stop();
+
+    const run = () => {
+      x.setValue(-W);
+      animRef.current = Animated.sequence([
+        Animated.timing(x, { toValue: 0,  duration: 3600, easing: Easing.linear, useNativeDriver: true }),
+        Animated.delay(3600),
+        Animated.timing(x, { toValue: W,  duration: 4800, easing: Easing.linear, useNativeDriver: true }),
+      ]);
+      // Only loop automatically for a single message; multi-message uses the interval above
+      animRef.current.start(({ finished }) => { if (finished && messages.length === 1) run(); });
+    };
+
+    run();
+    return () => animRef.current?.stop();
+  }, [idx, messages.length]);
+
+  if (!messages.length) return null;
+
+  return (
+    <View style={[s.wrap, { height: 44 + insets.top, paddingTop: insets.top }]}>
+      <Animated.View
+        style={[s.track, { transform: [{ translateX: x }] }]}
+        pointerEvents="none"
+      >
+        <Text style={s.text}>{(messages[idx]?.message || '').toUpperCase()}</Text>
+      </Animated.View>
+    </View>
+  );
+}
+
+function makeStyles(T) { return StyleSheet.create({
+  wrap:  { backgroundColor: T.red, overflow: 'hidden', justifyContent: 'center' },
+  track: { position: 'absolute', bottom: 0, width: W, height: 44, alignItems: 'center', justifyContent: 'center' },
+  text:  { fontFamily: T.fontHead, fontSize: 20, letterSpacing: 4, color: '#fff' },
+}); }
