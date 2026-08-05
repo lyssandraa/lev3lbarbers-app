@@ -30,9 +30,20 @@ export default function ForgotPasswordScreen({ navigation }) {
     }
   };
 
+  const handleClose = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('MainApp');
+    }
+  };
+
   return (
     <SafeAreaView style={s.safe}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <TouchableOpacity style={s.closeBtn} onPress={handleClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Text style={s.closeText}>✕</Text>
+        </TouchableOpacity>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
 
           <Text style={s.wordmark}>LEV3L BARBERS</Text>
@@ -93,6 +104,8 @@ export default function ForgotPasswordScreen({ navigation }) {
 function makeStyles(T) {
   return StyleSheet.create({
     safe:         { flex: 1, backgroundColor: T.bg },
+    closeBtn:     { position: 'absolute', top: 16, right: 20, zIndex: 10, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+    closeText:    { fontSize: 22, color: T.textDim },
     scroll:       { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 28, paddingVertical: 40 },
     wordmark:     { fontFamily: T.fontHead, fontSize: 13, letterSpacing: 5, color: T.textDim, textAlign: 'center', marginBottom: 8 },
     accentRule:   { width: 28, height: 1, backgroundColor: T.red, opacity: 0.7, alignSelf: 'center', marginBottom: 30 },
