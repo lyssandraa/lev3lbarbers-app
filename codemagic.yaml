@@ -11,6 +11,7 @@ workflows:
         bundle_identifier: com.lev3lbarbers.app
       vars:
         XCODE_SCHEME: "LEV3LBarbers"
+        BUNDLE_ID: "com.lev3lbarbers.app"
       node: 20.19.4
       xcode: latest
       cocoapods: default
@@ -28,6 +29,11 @@ workflows:
       - name: Install CocoaPods dependencies
         script: |
           cd ios && pod install
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
       - name: Set up code signing
         script: xcode-project use-profiles
       - name: Build ipa for distribution
