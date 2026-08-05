@@ -1,0 +1,40 @@
+workflows:
+  ios-preview:
+    name: LEV3L Barbers iOS (ad-hoc preview)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: lev3l_asc
+    environment:
+      ios_signing:
+        distribution_type: ad_hoc
+        bundle_identifier: com.lev3lbarbers.app
+      vars:
+        XCODE_SCHEME: "LEV3LBarbers"
+      node: 20.19.4
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - name: Install npm dependencies
+        script: npm install
+      - name: Prebuild native iOS project
+        script: npx expo prebuild --platform ios --no-install
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios && pod install
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa \
+            --workspace "$(find ios -maxdepth 1 -name '*.xcworkspace')" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
