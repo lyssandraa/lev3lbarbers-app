@@ -39,14 +39,19 @@ export const DARK = {
   fontBodyBd:'Montserrat_700Bold',
 };
 
-const ThemeCtx = createContext({ T: LIGHT, isDark: false, toggleTheme: () => {} });
+const ThemeCtx = createContext({ T: DARK, isDark: true, toggleTheme: () => {} });
 
 export function ThemeProvider({ children }) {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(true); // dark by default
 
   useEffect(() => {
     AsyncStorage.getItem('appTheme')
-      .then(v => { if (v === 'dark') setIsDark(true); })
+      .then(v => {
+        // Only override the dark default if the user previously chose light;
+        // no saved preference (new install) keeps the dark default.
+        if (v === 'light') setIsDark(false);
+        else if (v === 'dark') setIsDark(true);
+      })
       .catch(() => {});
   }, []);
 
