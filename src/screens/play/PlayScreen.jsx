@@ -32,6 +32,7 @@ export default function PlayScreen() {
   const [loadingBoard, setLoadingBoard] = useState(true);
   const [weekLabel,   setWeekLabel]   = useState('');
   const [weekPrize,   setWeekPrize]   = useState('');
+  const [prizeExpiresAt, setPrizeExpiresAt] = useState(null);
 
   const [personalBest,    setPersonalBest]    = useState(0);
   const [snakePromos,     setSnakePromos]     = useState([]);
@@ -54,7 +55,10 @@ export default function PlayScreen() {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
     fetchBoard();
     fetchPongBoard();
-    api.get('/scores/prize').then(r => setWeekPrize(r.data.prize || '')).catch(() => {});
+    api.get('/scores/prize').then(r => {
+      setWeekPrize(r.data.prize || '');
+      setPrizeExpiresAt(r.data.expiresAt || null);
+    }).catch(() => {});
     api.get('/banners/public').then(r => {
       const all = r.data?.data || [];
       setSnakePromos(all.filter(b => b.page === 'snake-start' && b.active !== false));
@@ -234,6 +238,16 @@ export default function PlayScreen() {
                 ? `Participate to win: ${weekPrize}`
                 : 'The top player each Sunday earns a reward. Claim it in store.'}
             </Text>
+            {(() => {
+              if (!prizeExpiresAt) return null;
+              const daysLeft = Math.ceil((new Date(prizeExpiresAt) - Date.now()) / 86400000);
+              if (daysLeft <= 0) return null;
+              return (
+                <Text style={s.prizeExpiry}>
+                  Ends in {daysLeft} day{daysLeft === 1 ? '' : 's'}
+                </Text>
+              );
+            })()}
           </View>
         </View>
 
@@ -532,6 +546,7 @@ function makeStyles(T) { return StyleSheet.create({
   },
   prizeTitle: { fontFamily: T.fontBodyBd, fontSize: 10, letterSpacing: 3, color: T.gold, textTransform: 'uppercase', marginBottom: 4 },
   prizeSub:   { fontFamily: T.fontBody, fontSize: 12, color: T.text, opacity: 0.7, lineHeight: 18 },
+  prizeExpiry:{ fontFamily: T.fontBodyBd, fontSize: 10, letterSpacing: 1, color: T.red, marginTop: 4, textTransform: 'uppercase' },
 
   pongHeader: {
     flexDirection: 'row', alignItems: 'center',
