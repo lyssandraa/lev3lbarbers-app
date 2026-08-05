@@ -412,7 +412,7 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
           <TouchableOpacity
             style={s.ghostBtn}
-            onPress={() => navigation.navigate('Bookings')}
+            onPress={() => navigation.navigate('Services')}
             activeOpacity={0.8}
           >
             <Text style={s.ghostBtnText}>Our Services</Text>
