@@ -50,7 +50,8 @@ export default function LoyaltyScreen({ navigation }) {
   );
 
   useEffect(() => {
-    if (isShopUser) { setLoading(false); return; }
+    if (!user || isShopUser) { setLoading(false); return; }
+    setLoading(true);
     api.get('/stamps/me')
       .then(r => {
         setData(r.data);
@@ -58,7 +59,7 @@ export default function LoyaltyScreen({ navigation }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isShopUser]);
+  }, [user, isShopUser]);
 
   if (isShopUser) {
     return (
