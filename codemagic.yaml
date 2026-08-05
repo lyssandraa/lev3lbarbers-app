@@ -1,13 +1,13 @@
 workflows:
   ios-preview:
-    name: LEV3L Barbers iOS (ad-hoc preview)
+    name: LEV3L Barbers iOS (TestFlight)
     max_build_duration: 60
     instance_type: mac_mini_m2
     integrations:
       app_store_connect: lev3l_asc
     environment:
       ios_signing:
-        distribution_type: ad_hoc
+        distribution_type: app_store
         bundle_identifier: com.lev3lbarbers.app
       vars:
         XCODE_SCHEME: "LEV3LBarbers"
@@ -38,3 +38,7 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
