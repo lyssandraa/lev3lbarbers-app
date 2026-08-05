@@ -167,9 +167,11 @@ export default function AdminScreen({ navigation }) {
           <Ionicons name="lock-closed-outline" size={40} color={T.textDim} style={{ marginBottom: 12 }} />
           <Text style={s.deniedTitle}>ACCESS DENIED</Text>
           <Text style={s.deniedSub}>Admin area is restricted to staff.</Text>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-            <Text style={s.backBtnText}>← BACK</Text>
-          </TouchableOpacity>
+          {navigation.canGoBack() && (
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+              <Text style={s.backBtnText}>← BACK</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -201,9 +203,11 @@ export default function AdminScreen({ navigation }) {
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color={T.textDim} />
-        </TouchableOpacity>
+        {navigation.canGoBack() && (
+          <TouchableOpacity style={s.headerBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color={T.textDim} />
+          </TouchableOpacity>
+        )}
         <View style={{ flex: 1 }}>
           <Text style={s.headerEye}>ADMIN</Text>
           <Text style={s.headerTitle}>Staff Panel</Text>

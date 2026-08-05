@@ -28,19 +28,22 @@ export function AuthProvider({ children }) {
     })();
   }, []);
 
-  const login = async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password });
-    await AsyncStorage.setItem('token', data.token);
-    // login only returns token+role — fetch full profile
+  // Shared by anything that already has a token (password login, register,
+  // PIN quick-switch) — stores it and fetches the full profile.
+  const loginWithToken = async (token) => {
+    await AsyncStorage.setItem('token', token);
     const { data: profileData } = await api.get('/auth/profile');
     setUser(profileData.user);
   };
 
+  const login = async (email, password) => {
+    const { data } = await api.post('/auth/login', { email, password });
+    await loginWithToken(data.token);
+  };
+
   const register = async (name, email, password, referralCode) => {
     const { data } = await api.post('/auth/register', { name, email, password, referralCode });
-    await AsyncStorage.setItem('token', data.token);
-    const { data: profileData } = await api.get('/auth/profile');
-    setUser(profileData.user);
+    await loginWithToken(data.token);
     return data;
   };
 
@@ -54,7 +57,7 @@ export function AuthProvider({ children }) {
   const isDeveloper = user?.role === 'DEVELOPER';
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout, isShopUser, isAdmin, isDeveloper }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, loginWithToken, register, logout, isShopUser, isAdmin, isDeveloper }}>
       {children}
     </AuthContext.Provider>
   );

@@ -16,6 +16,7 @@ import LoginScreen          from '../screens/auth/LoginScreen';
 import SignupScreen         from '../screens/auth/SignupScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen  from '../screens/auth/ResetPasswordScreen';
+import StaffSwitchScreen    from '../screens/auth/StaffSwitchScreen';
 
 // App screens
 import HomeScreen     from '../screens/home/HomeScreen';
@@ -29,6 +30,7 @@ import LoyaltyScreen  from '../screens/loyalty/LoyaltyScreen';
 import ProfileScreen  from '../screens/profile/ProfileScreen';
 import AdminScreen    from '../screens/admin/AdminScreen';
 import PlayScreen     from '../screens/play/PlayScreen';
+import ScanScreen     from '../screens/scan/ScanScreen';
 
 import AppBanner           from '../components/AppBanner';
 import WinnerModal         from '../components/WinnerModal';
@@ -47,6 +49,7 @@ const TAB_ICONS = {
   Contact:  { focused: 'location',         outline: 'location-outline' },
   Scan:     { focused: 'qr-code',          outline: 'qr-code-outline' },
   Play:     { focused: 'game-controller',  outline: 'game-controller-outline' },
+  Settings: { focused: 'settings',         outline: 'settings-outline' },
   Profile:  { focused: 'person',           outline: 'person-outline' },
 };
 
@@ -116,14 +119,14 @@ function makeHStyles(T) {
     left:   { flexDirection: 'column', alignItems: 'center', gap: 4, width: 44 },
     status: { fontFamily: T.fontBodyBd, fontSize: 8, letterSpacing: 1 },
     brandWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-    brand:  { fontFamily: T.fontHead, fontSize: 28, letterSpacing: 3, color: T.text },
+    brand:  { fontFamily: T.fontHead, fontSize: 31, letterSpacing: 0.5, color: T.text },
     right:  { width: 44, alignItems: 'flex-end', justifyContent: 'center' },
   });
 }
 
 function MainTabs() {
   const { T, isDark } = useTheme();
-  const { user } = useAuth();
+  const { user, isShopUser } = useAuth();
   usePushNotifications(user);
   const { bottom: bottomInset } = useSafeAreaInsets();
   const [bookingsActive, setBookingsActive] = useState(true);
@@ -194,8 +197,22 @@ function MainTabs() {
             options={{ tabBarLabel: 'Scan' }}
           />
         )}
+        {isShopUser && (
+          <Tab.Screen
+            name="Scan"
+            component={ScanScreen}
+            options={{ tabBarLabel: 'Scan' }}
+          />
+        )}
         <Tab.Screen name="Play"     component={PlayScreen}     />
         <Tab.Screen name="Contact"  component={ContactScreen}  />
+        {isShopUser && (
+          <Tab.Screen
+            name="Settings"
+            component={AdminScreen}
+            options={{ tabBarLabel: 'Settings' }}
+          />
+        )}
         <Tab.Screen name="Profile"  component={ProfileScreen}  />
       </Tab.Navigator>
     </View>
@@ -211,6 +228,7 @@ export default function AppNavigator() {
         <RootStack.Screen name="Signup"         component={SignupScreen}        />
         <RootStack.Screen name="ForgotPassword" component={ForgotPasswordScreen}/>
         <RootStack.Screen name="ResetPassword"  component={ResetPasswordScreen} />
+        <RootStack.Screen name="StaffSwitch"    component={StaffSwitchScreen}   />
         <RootStack.Screen name="Gallery"        component={GalleryScreen}       />
         <RootStack.Screen name="WhatsOn"        component={WhatsOnScreen}       />
         <RootStack.Screen name="Admin"          component={AdminScreen}         />
