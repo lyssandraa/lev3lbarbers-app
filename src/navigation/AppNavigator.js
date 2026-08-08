@@ -49,6 +49,7 @@ const TAB_ICONS = {
   Contact:  { focused: 'location',         outline: 'location-outline' },
   Scan:     { focused: 'qr-code',          outline: 'qr-code-outline' },
   Play:     { focused: 'game-controller',  outline: 'game-controller-outline' },
+  SwitchBarber: { focused: 'swap-horizontal', outline: 'swap-horizontal-outline' },
   Settings: { focused: 'settings',         outline: 'settings-outline' },
   Profile:  { focused: 'person',           outline: 'person-outline' },
 };
@@ -126,7 +127,8 @@ function makeHStyles(T) {
 
 function MainTabs() {
   const { T, isDark } = useTheme();
-  const { user, isShopUser } = useAuth();
+  const { user, isShopUser, isAdmin } = useAuth();
+  const isStaffOnly = isShopUser && !isAdmin;
   usePushNotifications(user);
   const { bottom: bottomInset } = useSafeAreaInsets();
   const [bookingsActive, setBookingsActive] = useState(true);
@@ -184,36 +186,63 @@ function MainTabs() {
           },
         })}
       >
-        <Tab.Screen name="Home"     component={HomeScreen}     />
-        {bookingsActive && (
-          <Tab.Screen name="Bookings" component={BookingsScreen} />
+        {isStaffOnly ? (
+          <>
+            <Tab.Screen name="Home"     component={HomeScreen}     />
+            <Tab.Screen
+              name="Scan"
+              component={ScanScreen}
+              options={{ tabBarLabel: 'Scan' }}
+            />
+            <Tab.Screen name="Services" component={ServicesScreen} />
+            <Tab.Screen
+              name="SwitchBarber"
+              component={StaffSwitchScreen}
+              options={{ tabBarLabel: 'Switch' }}
+            />
+            <Tab.Screen name="Profile" component={ProfileScreen}  />
+          </>
+        ) : (
+          <>
+            <Tab.Screen name="Home"     component={HomeScreen}     />
+            {bookingsActive && (
+              <Tab.Screen name="Bookings" component={BookingsScreen} />
+            )}
+            <Tab.Screen name="Services" component={ServicesScreen} />
+            <Tab.Screen name="Shop"     component={ShopScreen}     />
+            {(!user || user.role === 'USER') && (
+              <Tab.Screen
+                name="Scan"
+                component={LoyaltyScreen}
+                options={{ tabBarLabel: 'Scan' }}
+              />
+            )}
+            {isAdmin && (
+              <Tab.Screen
+                name="Scan"
+                component={ScanScreen}
+                options={{ tabBarLabel: 'Scan' }}
+              />
+            )}
+            <Tab.Screen name="Play"     component={PlayScreen}     />
+            <Tab.Screen name="Contact"  component={ContactScreen}  />
+            {isAdmin && (
+              <Tab.Screen
+                name="SwitchBarber"
+                component={StaffSwitchScreen}
+                options={{ tabBarLabel: 'Switch' }}
+              />
+            )}
+            {isAdmin && (
+              <Tab.Screen
+                name="Settings"
+                component={AdminScreen}
+                options={{ tabBarLabel: 'Settings' }}
+              />
+            )}
+            <Tab.Screen name="Profile"  component={ProfileScreen}  />
+          </>
         )}
-        <Tab.Screen name="Services" component={ServicesScreen} />
-        <Tab.Screen name="Shop"     component={ShopScreen}     />
-        {(!user || user.role === 'USER') && (
-          <Tab.Screen
-            name="Scan"
-            component={LoyaltyScreen}
-            options={{ tabBarLabel: 'Scan' }}
-          />
-        )}
-        {isShopUser && (
-          <Tab.Screen
-            name="Scan"
-            component={ScanScreen}
-            options={{ tabBarLabel: 'Scan' }}
-          />
-        )}
-        <Tab.Screen name="Play"     component={PlayScreen}     />
-        <Tab.Screen name="Contact"  component={ContactScreen}  />
-        {isShopUser && (
-          <Tab.Screen
-            name="Settings"
-            component={AdminScreen}
-            options={{ tabBarLabel: 'Settings' }}
-          />
-        )}
-        <Tab.Screen name="Profile"  component={ProfileScreen}  />
       </Tab.Navigator>
     </View>
   );

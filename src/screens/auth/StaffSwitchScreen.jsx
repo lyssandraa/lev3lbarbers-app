@@ -48,7 +48,8 @@ export default function StaffSwitchScreen({ navigation }) {
     try {
       const res = await api.post('/auth/pin-login', { userId: barber.userId, pin: fullPin });
       await loginWithToken(res.data.token);
-      navigation.goBack();
+      if (navigation.canGoBack()) navigation.goBack();
+      else navigation.navigate('Home');
     } catch (err) {
       setError(err.response?.data?.message || 'Incorrect PIN');
       setPin('');
@@ -71,7 +72,7 @@ export default function StaffSwitchScreen({ navigation }) {
     <SafeAreaView style={s.safe}>
       <TouchableOpacity
         style={s.closeBtn}
-        onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('MainApp'))}
+        onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
         <Text style={s.closeText}>✕</Text>
