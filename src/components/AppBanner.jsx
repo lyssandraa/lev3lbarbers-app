@@ -10,9 +10,18 @@ const DURATION = 12000; // match website exactly
 
 // Website route slug -> app screen. Tab screens go through 'MainApp' since
 // they're nested inside the tab navigator; the rest are direct RootStack
-// screens. Unrecognized/blank page values are just not tappable.
-const PAGE_TABS  = { shop: 'Shop', services: 'Services', contact: 'Contact', bookings: 'Bookings' };
-const PAGE_STACK = { gallery: 'Gallery', 'whats-on': 'WhatsOn' };
+// screens. Unrecognized/blank page values are just not tappable. Covers
+// every website route that has an app equivalent, plus a couple of aliases
+// ('signup'/'register', 'rewards'/'loyalty') since admins may type either.
+const PAGE_TABS  = {
+  shop: 'Shop', services: 'Services', contact: 'Contact', bookings: 'Bookings',
+  profile: 'Profile', home: 'Home',
+  rewards: 'Scan', loyalty: 'Scan',
+};
+const PAGE_STACK = {
+  gallery: 'Gallery', 'whats-on': 'WhatsOn',
+  signup: 'Signup', register: 'Signup', login: 'Login',
+};
 
 export default function AppBanner() {
   const { T } = useTheme();
