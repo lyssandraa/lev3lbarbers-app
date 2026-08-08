@@ -1,16 +1,24 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions, Easing } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions, Easing, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import api from '../api/api';
 import { useTheme } from '../context/ThemeContext';
 
 const W = Dimensions.get('window').width;
 const DURATION = 12000; // match website exactly
 
+// Website route slug -> app screen. Tab screens go through 'MainApp' since
+// they're nested inside the tab navigator; the rest are direct RootStack
+// screens. Unrecognized/blank page values are just not tappable.
+const PAGE_TABS  = { shop: 'Shop', services: 'Services', contact: 'Contact', bookings: 'Bookings' };
+const PAGE_STACK = { gallery: 'Gallery', 'whats-on': 'WhatsOn' };
+
 export default function AppBanner() {
   const { T } = useTheme();
   const s = useMemo(() => makeStyles(T), [T]);
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [messages, setMessages] = useState([]);
   const [idx,      setIdx]      = useState(0);
   const x        = useRef(new Animated.Value(-W)).current;
@@ -54,15 +62,24 @@ export default function AppBanner() {
 
   if (!messages.length) return null;
 
+  const page = messages[idx]?.page?.trim().toLowerCase().replace(/^\//, '');
+  const handlePress = () => {
+    if (!page) return;
+    if (PAGE_TABS[page])  { navigation.navigate('MainApp', { screen: PAGE_TABS[page] }); return; }
+    if (PAGE_STACK[page]) { navigation.navigate(PAGE_STACK[page]); return; }
+  };
+
   return (
-    <View style={[s.wrap, { height: 44 + insets.top, paddingTop: insets.top }]}>
-      <Animated.View
-        style={[s.track, { transform: [{ translateX: x }] }]}
-        pointerEvents="none"
-      >
-        <Text style={s.text}>{(messages[idx]?.message || '').toUpperCase()}</Text>
-      </Animated.View>
-    </View>
+    <Pressable onPress={handlePress} disabled={!page}>
+      <View style={[s.wrap, { height: 44 + insets.top, paddingTop: insets.top }]}>
+        <Animated.View
+          style={[s.track, { transform: [{ translateX: x }] }]}
+          pointerEvents="none"
+        >
+          <Text style={s.text}>{(messages[idx]?.message || '').toUpperCase()}</Text>
+        </Animated.View>
+      </View>
+    </Pressable>
   );
 }
 

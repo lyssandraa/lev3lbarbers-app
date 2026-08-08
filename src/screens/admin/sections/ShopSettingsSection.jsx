@@ -103,11 +103,11 @@ function HoursTab({ T, s }) {
 function InfoTab({ T, s }) {
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
-  const [form, setForm] = useState({ address: '', city: '', postcode: '', phone: '', email: '', instagram: '', mapEmbedUrl: '', servicesIntro: '' });
+  const [form, setForm] = useState({ address: '', city: '', postcode: '', phone: '', email: '', instagram: '', mapEmbedUrl: '', servicesTitle: '', servicesIntro: '' });
 
   useEffect(() => {
     api.get('/shop-info')
-      .then(r => setForm({ address: r.data.address || '', city: r.data.city || '', postcode: r.data.postcode || '', phone: r.data.phone || '', email: r.data.email || '', instagram: r.data.instagram || '', mapEmbedUrl: r.data.mapEmbedUrl || '', servicesIntro: r.data.servicesIntro || '' }))
+      .then(r => setForm({ address: r.data.address || '', city: r.data.city || '', postcode: r.data.postcode || '', phone: r.data.phone || '', email: r.data.email || '', instagram: r.data.instagram || '', mapEmbedUrl: r.data.mapEmbedUrl || '', servicesTitle: r.data.servicesTitle || '', servicesIntro: r.data.servicesIntro || '' }))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -141,6 +141,9 @@ function InfoTab({ T, s }) {
           <TextInput style={s.input} value={form[f.key]} onChangeText={set(f.key)} placeholderTextColor={T.textFaint} autoCapitalize="none" />
         </View>
       ))}
+      <Text style={s.fieldLabel}>SERVICES PAGE TITLE</Text>
+      <TextInput style={s.input} value={form.servicesTitle} onChangeText={set('servicesTitle')} placeholder="Our Services" placeholderTextColor={T.textFaint} />
+
       <Text style={s.fieldLabel}>SERVICES INTRO</Text>
       <TextInput style={[s.input, { height: 80, textAlignVertical: 'top' }]} value={form.servicesIntro} onChangeText={set('servicesIntro')} placeholder="Intro text shown on services page…" placeholderTextColor={T.textFaint} multiline />
 

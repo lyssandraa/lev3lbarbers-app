@@ -79,6 +79,26 @@ export default function DashboardSection() {
         <StatCard icon="pricetag-outline"  label="Active Promos"  value={data.promos?.active ?? 0}   color="#8b5cf6" />
       </View>
 
+      {data.staffScans?.length > 0 && (
+        <>
+          <Text style={s.section}>STAFF SCANS</Text>
+          <View style={s.card}>
+            {data.staffScans.map((row, i) => (
+              <View key={row.staffId} style={[s.orderRow, i < data.staffScans.length - 1 && s.orderBorder]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.orderName}>{row.name}</Text>
+                  <Text style={s.orderDate}>{row.allTime} scan{row.allTime === 1 ? '' : 's'} all time</Text>
+                </View>
+                <View style={s.orderRight}>
+                  <Text style={s.orderAmt}>{row.week}</Text>
+                  <Text style={s.orderDate}>this week</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+
       {data.recentOrders?.length > 0 && (
         <>
           <Text style={s.section}>RECENT ORDERS</Text>

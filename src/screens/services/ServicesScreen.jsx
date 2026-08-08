@@ -11,6 +11,7 @@ import { useTheme } from '../../context/ThemeContext';
 
 const INTRO_DEFAULT =
   'Crafted for every man. We cater to all hair types — afro, curly, straight and more. Other services available upon request.';
+const TITLE_DEFAULT = 'Our Services';
 
 function fmtPrice(price) {
   const n = parseFloat(price);
@@ -70,6 +71,7 @@ export default function ServicesScreen() {
   const [loading,   setLoading]   = useState(true);
   const [loggedIn,  setLoggedIn]  = useState(false);
   const [intro,     setIntro]     = useState(INTRO_DEFAULT);
+  const [title,     setTitle]     = useState(TITLE_DEFAULT);
 
   useFocusEffect(
     useCallback(() => {
@@ -80,6 +82,7 @@ export default function ServicesScreen() {
   useEffect(() => {
     api.get('/shop-info').then(r => {
       if (r.data?.servicesIntro) setIntro(r.data.servicesIntro);
+      if (r.data?.servicesTitle) setTitle(r.data.servicesTitle);
     }).catch(() => {});
   }, []);
 
@@ -114,7 +117,7 @@ export default function ServicesScreen() {
       {/* Page header */}
       <View style={s.header}>
         <Text style={s.eyebrow}>THE MENU</Text>
-        <Text style={s.title}>OUR SERVICES</Text>
+        <Text style={s.title}>{title.toUpperCase()}</Text>
         <Text style={s.sub}>{intro}</Text>
       </View>
 

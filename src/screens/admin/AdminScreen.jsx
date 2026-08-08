@@ -9,7 +9,6 @@ import { useTheme } from '../../context/ThemeContext';
 
 // Section components
 import StampSection         from './sections/StampSection';
-import VerifyClaimSection   from './sections/VerifyClaimSection';
 import ShopStatusSection    from './sections/ShopStatusSection';
 import DashboardSection     from './sections/DashboardSection';
 import RewardPoolSection    from './sections/RewardPoolSection';
@@ -47,9 +46,9 @@ const MENU = [
   {
     group: 'Operations', minRole: 'STAFF',
     items: [
-      { id: 'stamps',     label: 'Stamp Manager', icon: 'qr-code-outline',          minRole: 'STAFF' },
-      { id: 'verify',     label: 'Verify Claim',  icon: 'shield-checkmark-outline',  minRole: 'STAFF' },
-      { id: 'shopStatus', label: 'Shop Status',   icon: 'storefront-outline',        minRole: 'STAFF' },
+      { id: 'stamps',       label: 'Stamp Manager', icon: 'qr-code-outline',    minRole: 'STAFF' },
+      { id: 'shopStatus',   label: 'Shop Status',   icon: 'storefront-outline', minRole: 'STAFF' },
+      { id: 'shopSettings', label: 'Shop Settings', icon: 'settings-outline',   minRole: 'ADMIN' },
     ],
   },
   {
@@ -70,7 +69,8 @@ const MENU = [
   {
     group: 'Barbers', minRole: 'ADMIN',
     items: [
-      { id: 'barbers', label: 'Barbers', icon: 'cut-outline', minRole: 'ADMIN' },
+      { id: 'barbers',      label: 'Barbers',      icon: 'cut-outline',        minRole: 'ADMIN' },
+      { id: 'createStaff',  label: 'Create Staff', icon: 'person-add-outline', minRole: 'ADMIN' },
     ],
   },
   {
@@ -93,13 +93,11 @@ const MENU = [
   {
     group: 'Settings', minRole: 'ADMIN',
     items: [
-      { id: 'shopSettings', label: 'Shop Settings',     icon: 'settings-outline',        minRole: 'ADMIN' },
       { id: 'loyalty',      label: 'Loyalty Settings',  icon: 'star-outline',            minRole: 'ADMIN' },
       { id: 'expiry',       label: 'Reward Expiry',     icon: 'time-outline',            minRole: 'ADMIN' },
       { id: 'rewardTerms',  label: 'Reward T&C',        icon: 'document-text-outline',   minRole: 'ADMIN' },
       { id: 'terms',        label: 'Terms & Conditions', icon: 'document-outline',       minRole: 'ADMIN' },
       { id: 'privacy',      label: 'Privacy Notice',    icon: 'lock-closed-outline',     minRole: 'ADMIN' },
-      { id: 'createStaff',  label: 'Create Staff',      icon: 'person-add-outline',      minRole: 'ADMIN' },
       { id: 'createAdmin',  label: 'Create Admin',      icon: 'key-outline',             minRole: 'DEVELOPER' },
     ],
   },
@@ -113,7 +111,6 @@ MENU.forEach(g => g.items.forEach(i => { SECTION_LABELS[i.id] = i.label; }));
 function renderSection(sectionId) {
   switch (sectionId) {
     case 'stamps':      return <StampSection />;
-    case 'verify':      return <VerifyClaimSection />;
     case 'shopStatus':  return <ShopStatusSection />;
     case 'dashboard':   return <DashboardSection />;
     case 'rewardPool':  return <RewardPoolSection />;
@@ -276,10 +273,10 @@ function makeStyles(T) { return StyleSheet.create({
 
   groupWrap: { marginBottom: 8, borderWidth: 1, borderColor: T.border, backgroundColor: T.surface },
   groupHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 13, backgroundColor: T.card },
-  groupLabel: { fontFamily: T.fontBodyBd, fontSize: 10, letterSpacing: 3, color: T.textDim },
+  groupLabel: { fontFamily: T.fontBodyBd, fontSize: 12, letterSpacing: 3, color: T.text },
 
   menuItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   menuItemBorder: { borderBottomWidth: 1, borderBottomColor: T.border },
   menuIconWrap: { width: 30, height: 30, borderRadius: 6, backgroundColor: T.redDim, borderWidth: 1, borderColor: T.red + '44', alignItems: 'center', justifyContent: 'center' },
-  menuLabel: { flex: 1, fontFamily: T.fontBodyMd, fontSize: 14, color: T.text },
+  menuLabel: { flex: 1, fontFamily: T.fontBodyBd, fontSize: 15, color: T.text },
 }); }
