@@ -5,7 +5,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useAudioPlayer } from 'expo-audio';
 import api from '../../../api/api';
+
+const SCAN_SOUND = require('../../../../assets/sounds/stamp-scanned.wav');
 import { useTheme } from '../../../context/ThemeContext';
 
 const TIER_COLORS = {
@@ -33,6 +36,7 @@ export default function StampSection() {
   const [scanned,      setScanned]      = useState(false);
 
   const [permission, requestPermission] = useCameraPermissions();
+  const scanSound = useAudioPlayer(SCAN_SOUND);
 
   const clear = () => { setSuccess(''); setError(''); };
 
@@ -88,6 +92,7 @@ export default function StampSection() {
       let msg = 'Stamp added!';
       if (res.data.newReward?.type === 'BONUS_STAMP') msg = 'Stamp added! Bonus stamp also applied.';
       setSuccess(msg);
+      try { await scanSound.seekTo(0); scanSound.play(); } catch {}
       if (res.data.claimedRewards?.length > 0) {
         setClaimedRewards(res.data.claimedRewards);
         setDeferred(new Set());
