@@ -14,6 +14,7 @@ import {
 
 import { AuthProvider }  from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { ShopModeProvider } from './src/context/ShopModeContext';
 import IntroReveal from './src/common/IntroReveal';
 
 // Diagnostic: catches any render/lifecycle error anywhere below it and shows
@@ -96,9 +97,11 @@ function AppShell() {
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: T.bg }}>
         <StatusBar style={isDark ? 'light' : 'dark'} />
-        <AuthProvider>
-          <AppNavigator />
-        </AuthProvider>
+        <ShopModeProvider>
+          <AuthProvider>
+            <AppNavigator />
+          </AuthProvider>
+        </ShopModeProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>
   );

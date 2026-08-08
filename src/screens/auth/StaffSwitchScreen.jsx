@@ -25,6 +25,11 @@ export default function StaffSwitchScreen({ navigation }) {
   const [submitting, setSubmitting] = useState(false);
   const shakeAnim = useState(new Animated.Value(0))[0];
 
+  // True only when there's genuinely somewhere to go back to. False when
+  // this screen is the Shop Mode kiosk landing (root, no parent, no back
+  // stack) — in that case there's nothing to close to, so hide the button.
+  const canClose = navigation.canGoBack() || !!navigation.getParent();
+
   useEffect(() => {
     api.get('/barber-profiles')
       .then(r => setBarbers(r.data || []))
@@ -48,8 +53,16 @@ export default function StaffSwitchScreen({ navigation }) {
     try {
       const res = await api.post('/auth/pin-login', { userId: barber.userId, pin: fullPin });
       await loginWithToken(res.data.token);
-      if (navigation.canGoBack()) navigation.goBack();
-      else navigation.navigate('Home');
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        // Nested as the "Switch Barber" tab: jump back to Home. Mounted as
+        // the root Shop Mode kiosk screen (no parent, nothing to go back
+        // to): the app-level effect watching `user` resets the stack once
+        // it updates, so there's nothing to do here.
+        const parent = navigation.getParent();
+        if (parent) parent.navigate('MainApp', { screen: 'Home' });
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Incorrect PIN');
       setPin('');
@@ -70,13 +83,18 @@ export default function StaffSwitchScreen({ navigation }) {
 
   return (
     <SafeAreaView style={s.safe}>
-      <TouchableOpacity
-        style={s.closeBtn}
-        onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
-        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-      >
-        <Text style={s.closeText}>✕</Text>
-      </TouchableOpacity>
+      {canClose && (
+        <TouchableOpacity
+          style={s.closeBtn}
+          onPress={() => {
+            if (navigation.canGoBack()) navigation.goBack();
+            else navigation.getParent()?.navigate('MainApp', { screen: 'Home' });
+          }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Text style={s.closeText}>✕</Text>
+        </TouchableOpacity>
+      )}
 
       {!selected ? (
         <View style={s.content}>

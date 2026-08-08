@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable, AppState } from 'react-native';
-import { NavigationContainer, useNavigation } from '@react-navigation/native';
+import { NavigationContainer, useNavigation, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useShopMode } from '../context/ShopModeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../api/api';
 import BarberPole from '../components/BarberPole';
@@ -248,10 +249,44 @@ function MainTabs() {
   );
 }
 
+const navigationRef = createNavigationContainerRef();
+
 export default function AppNavigator() {
+  const { user } = useAuth();
+  const { shopMode, ready: shopModeReady } = useShopMode();
+
+  // Shop Mode: when nobody's logged in on this device, the barber picker is
+  // the landing screen instead of the customer app. `initialRouteName`
+  // only applies at first mount, so react to `showKiosk` changing later
+  // (e.g. staff logs out) by imperatively resetting the stack.
+  const showKiosk = shopMode && !user;
+  const prevShowKiosk = useRef(null);
+
+  useEffect(() => {
+    if (!shopModeReady) return;
+    if (prevShowKiosk.current === null) {
+      prevShowKiosk.current = showKiosk;
+      return;
+    }
+    if (showKiosk !== prevShowKiosk.current) {
+      prevShowKiosk.current = showKiosk;
+      if (navigationRef.isReady()) {
+        navigationRef.reset({
+          index: 0,
+          routes: [{ name: showKiosk ? 'StaffSwitch' : 'MainApp' }],
+        });
+      }
+    }
+  }, [showKiosk, shopModeReady]);
+
+  if (!shopModeReady) return null;
+
   return (
-    <NavigationContainer>
-      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+    <NavigationContainer ref={navigationRef}>
+      <RootStack.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName={showKiosk ? 'StaffSwitch' : 'MainApp'}
+      >
         <RootStack.Screen name="MainApp"        component={MainTabs}            />
         <RootStack.Screen name="Login"          component={LoginScreen}         />
         <RootStack.Screen name="Signup"         component={SignupScreen}        />

@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useShopMode } from '../../context/ShopModeContext';
 
 // Section components
 import StampSection         from './sections/StampSection';
@@ -140,7 +141,8 @@ function renderSection(sectionId) {
 
 /* ── Main screen ── */
 export default function AdminScreen({ navigation }) {
-  const { user, isShopUser } = useAuth();
+  const { user, isShopUser, isAdmin } = useAuth();
+  const { shopMode, setShopMode } = useShopMode();
   const { T } = useTheme();
   const s = useMemo(() => makeStyles(T), [T]);
 
@@ -215,6 +217,24 @@ export default function AdminScreen({ navigation }) {
       </View>
 
       <ScrollView style={s.scroll} contentContainerStyle={[s.menuContent, { paddingBottom: insets.bottom + 32 }]}>
+        {isAdmin && (
+          <View style={s.shopModeCard}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.shopModeTitle}>SHOP MODE</Text>
+              <Text style={s.shopModeSub}>
+                Makes this device a shop kiosk — when nobody's logged in, it opens
+                straight to the "who's working" barber picker instead of the app.
+              </Text>
+            </View>
+            <Switch
+              value={shopMode}
+              onValueChange={setShopMode}
+              trackColor={{ true: T.red, false: T.border }}
+              thumbColor="#fff"
+            />
+          </View>
+        )}
+
         {visibleGroups.map(group => {
           const isOpen = !!openGroups[group.group];
           const visibleItems = group.items.filter(item => canSee(role, item.minRole));
@@ -270,6 +290,14 @@ function makeStyles(T) { return StyleSheet.create({
 
   scroll: { flex: 1 },
   menuContent: { padding: 16 },
+
+  shopModeCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    borderWidth: 1, borderColor: T.red + '55', backgroundColor: T.redDim,
+    padding: 16, marginBottom: 14,
+  },
+  shopModeTitle: { fontFamily: T.fontBodyBd, fontSize: 12, letterSpacing: 2, color: T.text, marginBottom: 4 },
+  shopModeSub: { fontFamily: T.fontBody, fontSize: 12, color: T.textDim, lineHeight: 17 },
 
   groupWrap: { marginBottom: 8, borderWidth: 1, borderColor: T.border, backgroundColor: T.surface },
   groupHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 13, backgroundColor: T.card },
