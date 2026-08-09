@@ -128,8 +128,25 @@ function makeHStyles(T) {
 
 function MainTabs() {
   const { T, isDark } = useTheme();
-  const { user, isShopUser, isAdmin } = useAuth();
+  const { user, isShopUser, isAdmin, logout } = useAuth();
   const isStaffOnly = isShopUser && !isAdmin;
+
+  // Switch Barber must actually log the current person out the moment it's
+  // tapped — not just show the picker while the old session stays active
+  // underneath, which let anyone flip to another tab and still be signed
+  // in as the previous barber. Intercepting tabPress (instead of relying
+  // on the tab's own screen) also sidesteps this tab disappearing mid-flow:
+  // once `user` is null the STAFF/ADMIN tab set recomputes and this tab
+  // may no longer exist, so the actual picker lives on the stable
+  // root-level "StaffSwitch" screen instead.
+  const switchBarberListeners = ({ navigation }) => ({
+    tabPress: (e) => {
+      e.preventDefault();
+      logout().then(() => {
+        navigation.getParent()?.navigate('StaffSwitch');
+      });
+    },
+  });
   usePushNotifications(user);
   const { bottom: bottomInset } = useSafeAreaInsets();
   const [bookingsActive, setBookingsActive] = useState(true);
@@ -200,6 +217,7 @@ function MainTabs() {
               name="SwitchBarber"
               component={StaffSwitchScreen}
               options={{ tabBarLabel: 'Switch' }}
+              listeners={switchBarberListeners}
             />
             <Tab.Screen name="Profile" component={ProfileScreen}  />
           </>
@@ -232,6 +250,7 @@ function MainTabs() {
                 name="SwitchBarber"
                 component={StaffSwitchScreen}
                 options={{ tabBarLabel: 'Switch' }}
+                listeners={switchBarberListeners}
               />
             )}
             {isAdmin && (
