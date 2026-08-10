@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Modal,
+  TextInput, ActivityIndicator, Alert, Modal, Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../api/api';
@@ -100,8 +100,8 @@ function DenomTab({ T, s }) {
         <View style={{ height: 40 }} />
       </ScrollView>
       <Modal visible={showForm} transparent animationType="slide" onRequestClose={() => setShowForm(false)}>
-        <View style={s.overlay}>
-          <View style={s.sheet}>
+        <Pressable style={s.overlay} onPress={() => setShowForm(false)}>
+          <Pressable style={s.sheet} onPress={() => {}}>
             <View style={s.sheetHeader}>
               <Text style={s.sheetTitle}>{editing ? 'EDIT DENOMINATION' : 'ADD DENOMINATION'}</Text>
               <TouchableOpacity onPress={() => setShowForm(false)}><Ionicons name="close" size={20} color={T.text} /></TouchableOpacity>
@@ -115,8 +115,8 @@ function DenomTab({ T, s }) {
                 {saving ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>SAVE</Text>}
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Modal, ScrollView,
+  TextInput, ActivityIndicator, Alert, Modal, ScrollView, Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../api/api';
@@ -160,8 +160,8 @@ export default function CustomersSection() {
 
       {/* Customer detail modal */}
       <Modal visible={!!selected} transparent animationType="slide" onRequestClose={() => setSelected(null)}>
-        <View style={s.overlay}>
-          <View style={s.sheet}>
+        <Pressable style={s.overlay} onPress={() => setSelected(null)}>
+          <Pressable style={s.sheet} onPress={() => {}}>
             <View style={s.handle} />
             <TouchableOpacity style={s.closeBtn} onPress={() => setSelected(null)}>
               <Ionicons name="close" size={18} color={T.text} />
@@ -215,8 +215,8 @@ export default function CustomersSection() {
                 <View style={{ height: 24 }} />
               </ScrollView>
             )}
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );

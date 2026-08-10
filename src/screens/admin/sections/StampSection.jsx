@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Modal,
+  TextInput, ActivityIndicator, Modal, Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -269,8 +269,8 @@ export default function StampSection() {
       </Modal>
 
       <Modal visible={showPopup} transparent animationType="fade" onRequestClose={confirmPopup}>
-        <View style={s.overlay}>
-          <View style={s.popup}>
+        <Pressable style={s.overlay} onPress={confirmPopup}>
+          <Pressable style={s.popup} onPress={() => {}}>
             <Text style={s.popupTitle}>Give {userData?.name || 'customer'} the following:</Text>
             {claimedRewards.map(r => {
               const def = deferred.has(r.id);
@@ -292,8 +292,8 @@ export default function StampSection() {
             <TouchableOpacity style={s.btn} onPress={confirmPopup} activeOpacity={0.8}>
               <Text style={s.btnText}>DONE</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );

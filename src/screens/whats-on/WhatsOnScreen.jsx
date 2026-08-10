@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Modal, ScrollView, TextInput, ActivityIndicator,
-  Animated,
+  Animated, Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -82,7 +82,8 @@ function ArticleModal({ post, onClose }) {
   const cat    = post.category;
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={ms.backdrop}>
+      <Pressable style={ms.backdrop} onPress={onClose}>
+        <Pressable onPress={() => {}}>
         <SafeAreaView style={ms.sheet} edges={['top', 'bottom']}>
           {/* Handle + close */}
           <View style={ms.handle} />
@@ -107,7 +108,8 @@ function ArticleModal({ post, onClose }) {
             <View style={{ height: 40 }} />
           </ScrollView>
         </SafeAreaView>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }

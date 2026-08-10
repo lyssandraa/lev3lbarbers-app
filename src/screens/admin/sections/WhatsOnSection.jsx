@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Switch, Modal, ScrollView,
+  TextInput, ActivityIndicator, Alert, Switch, Modal, ScrollView, Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../api/api';
@@ -118,8 +118,8 @@ export default function WhatsOnSection() {
         }}
       />
       <Modal visible={showForm} transparent animationType="slide" onRequestClose={() => setShowForm(false)}>
-        <View style={s.overlay}>
-          <View style={s.sheet}>
+        <Pressable style={s.overlay} onPress={() => setShowForm(false)}>
+          <Pressable style={s.sheet} onPress={() => {}}>
             <View style={s.sheetHeader}>
               <Text style={s.sheetTitle}>{editing ? 'EDIT POST' : 'NEW POST'}</Text>
               <TouchableOpacity onPress={() => setShowForm(false)}>
@@ -167,8 +167,8 @@ export default function WhatsOnSection() {
               </TouchableOpacity>
               <View style={{ height: 40 }} />
             </ScrollView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Modal, Switch,
+  TextInput, ActivityIndicator, Alert, Modal, Switch, Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../api/api';
@@ -121,8 +121,8 @@ export default function PromosSection() {
       </ScrollView>
 
       <Modal visible={showForm} transparent animationType="slide" onRequestClose={() => setShowForm(false)}>
-        <View style={s.overlay}>
-          <View style={s.sheet}>
+        <Pressable style={s.overlay} onPress={() => setShowForm(false)}>
+          <Pressable style={s.sheet} onPress={() => {}}>
             <View style={s.sheetHeader}>
               <Text style={s.sheetTitle}>{editing ? 'EDIT PROMO' : 'NEW PROMO'}</Text>
               <TouchableOpacity onPress={() => setShowForm(false)}><Ionicons name="close" size={20} color={T.text} /></TouchableOpacity>
@@ -163,8 +163,8 @@ export default function PromosSection() {
               </TouchableOpacity>
               <View style={{ height: 40 }} />
             </ScrollView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </>
   );

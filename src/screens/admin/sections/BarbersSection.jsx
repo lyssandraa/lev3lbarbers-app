@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Switch, Modal,
+  TextInput, ActivityIndicator, Alert, Switch, Modal, Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../api/api';
@@ -191,8 +191,8 @@ function BarbersTab({ T, s }) {
       </ScrollView>
 
       <Modal visible={showForm} transparent animationType="slide" onRequestClose={() => setShowForm(false)}>
-        <View style={s.overlay}>
-          <View style={s.formSheet}>
+        <Pressable style={s.overlay} onPress={() => setShowForm(false)}>
+          <Pressable style={s.formSheet} onPress={() => {}}>
             <View style={s.formHeader}>
               <Text style={s.formTitle}>{editing ? 'EDIT BARBER' : 'NEW BARBER'}</Text>
               <TouchableOpacity onPress={() => setShowForm(false)}>
@@ -244,8 +244,8 @@ function BarbersTab({ T, s }) {
               </TouchableOpacity>
               <View style={{ height: 40 }} />
             </ScrollView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </>
   );

@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, FlatList, Image, TouchableOpacity,
   Modal, ScrollView, ActivityIndicator, TextInput,
-  Dimensions, Animated, Linking,
+  Dimensions, Animated, Linking, Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -446,7 +446,8 @@ export default function ShopScreen() {
 
       {/* ── Cart drawer ── */}
       <Modal visible={showCart} animationType="slide" transparent onRequestClose={() => setShowCart(false)}>
-        <View style={s.cartBackdrop}>
+        <Pressable style={s.cartBackdrop} onPress={() => setShowCart(false)}>
+          <Pressable onPress={() => {}}>
           <SafeAreaView style={s.cartSheet} edges={['bottom']}>
             <View style={s.cartHead}>
               <Text style={s.cartTitle}>Your Cart</Text>
@@ -496,7 +497,8 @@ export default function ShopScreen() {
               </View>
             )}
           </SafeAreaView>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
     </SafeAreaView>
