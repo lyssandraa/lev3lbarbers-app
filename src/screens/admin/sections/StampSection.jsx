@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Modal, Pressable,
+  TextInput, ActivityIndicator, Modal, Pressable, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -19,6 +19,19 @@ const TIER_COLORS = {
 };
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+// Reward values are free text set by admin (e.g. "10% off", "£5 off a cut") —
+// best-effort detection so the calculator can pre-fill a likely discount,
+// staff can always override it.
+function detectDiscount(text) {
+  if (!text) return null;
+  const pct = text.match(/(\d+(?:\.\d+)?)\s*%/);
+  if (pct) return { type: 'PERCENT', value: pct[1] };
+  const fixed = text.match(/£\s*(\d+(?:\.\d+)?)/);
+  if (fixed) return { type: 'FIXED', value: fixed[1] };
+  return null;
+}
+const fmtGbp = (n) => `£${(Math.round(n * 100) / 100).toFixed(2)}`;
+
 export default function StampSection() {
   const { T } = useTheme();
   const s = useMemo(() => makeStyles(T), [T]);
@@ -34,6 +47,13 @@ export default function StampSection() {
   const [showPopup,    setShowPopup]    = useState(false);
   const [showCamera,   setShowCamera]   = useState(false);
   const [scanned,      setScanned]      = useState(false);
+
+  const [showCalc,      setShowCalc]      = useState(false);
+  const [allServices,   setAllServices]   = useState(null);
+  const [calcLoading,   setCalcLoading]   = useState(false);
+  const [calcSelected,  setCalcSelected]  = useState(new Set());
+  const [discountType,  setDiscountType]  = useState('NONE'); // NONE | PERCENT | FIXED
+  const [discountValue, setDiscountValue] = useState('');
 
   const [permission, requestPermission] = useCameraPermissions();
   const scanSound = useAudioPlayer(SCAN_SOUND);
@@ -127,6 +147,47 @@ export default function StampSection() {
     }
     setShowPopup(false); setClaimedRewards([]); setDeferred(new Set());
   };
+
+  const openCalc = useCallback(async () => {
+    setCalcSelected(new Set());
+    const guess = userData?.pendingRewards?.map(r => detectDiscount(r.rewardValue)).find(Boolean);
+    if (guess) { setDiscountType(guess.type); setDiscountValue(guess.value); }
+    else { setDiscountType('NONE'); setDiscountValue(''); }
+    setShowCalc(true);
+    if (!allServices) {
+      setCalcLoading(true);
+      try {
+        const res = await api.get('/services/all-services');
+        setAllServices(res.data.allServices || []);
+      } catch {
+        setAllServices([]);
+      } finally { setCalcLoading(false); }
+    }
+  }, [userData, allServices]);
+
+  const toggleCalcService = (id) => {
+    setCalcSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const calcSubtotal = useMemo(() => {
+    if (!allServices) return 0;
+    return allServices
+      .filter(svc => calcSelected.has(svc.id))
+      .reduce((sum, svc) => sum + (Number(svc.price) || 0), 0);
+  }, [allServices, calcSelected]);
+
+  const calcDiscountAmount = useMemo(() => {
+    const v = Number(discountValue) || 0;
+    if (discountType === 'PERCENT') return calcSubtotal * (Math.min(v, 100) / 100);
+    if (discountType === 'FIXED') return Math.min(v, calcSubtotal);
+    return 0;
+  }, [discountType, discountValue, calcSubtotal]);
+
+  const calcTotal = Math.max(0, calcSubtotal - calcDiscountAmount);
 
 
   const tierColor = userData ? (TIER_COLORS[userData.tier] || TIER_COLORS.BRONZE) : T.red;
@@ -235,6 +296,11 @@ export default function StampSection() {
               </View>
             )}
 
+            <TouchableOpacity style={s.calcBtn} onPress={openCalc} activeOpacity={0.8}>
+              <Ionicons name="calculator-outline" size={16} color={T.text} />
+              <Text style={s.calcBtnText}>CALCULATE TOTAL</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={[s.btn, adding && s.btnDim]}
               onPress={addStamp}
@@ -301,6 +367,90 @@ export default function StampSection() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <Modal visible={showCalc} transparent animationType="slide" onRequestClose={() => setShowCalc(false)}>
+        <Pressable style={s.overlay} onPress={() => setShowCalc(false)}>
+          <Pressable style={s.calcSheet} onPress={() => {}}>
+            <View style={s.sheetHeaderRow}>
+              <Text style={s.popupTitle}>CALCULATE TOTAL</Text>
+              <TouchableOpacity onPress={() => setShowCalc(false)}>
+                <Ionicons name="close" size={20} color={T.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={s.calcSectionLabel}>SERVICES DONE</Text>
+            {calcLoading ? (
+              <ActivityIndicator color={T.red} style={{ marginVertical: 20 }} />
+            ) : (
+              <ScrollView style={s.calcSvcScroll}>
+                {(allServices || []).map(svc => {
+                  const on = calcSelected.has(svc.id);
+                  return (
+                    <TouchableOpacity
+                      key={svc.id}
+                      style={[s.calcSvcRow, on && s.calcSvcRowOn]}
+                      onPress={() => toggleCalcService(svc.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name={on ? 'checkbox' : 'square-outline'} size={18} color={on ? T.red : T.textDim} />
+                      <Text style={s.calcSvcName} numberOfLines={1}>{svc.name}</Text>
+                      <Text style={s.calcSvcPrice}>{svc.price != null ? fmtGbp(svc.price) : '—'}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                {(!allServices || allServices.length === 0) && (
+                  <Text style={s.calcEmpty}>No services set up yet.</Text>
+                )}
+              </ScrollView>
+            )}
+
+            <Text style={s.calcSectionLabel}>DISCOUNT</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+              {[['NONE', 'None'], ['PERCENT', '% OFF'], ['FIXED', '£ OFF']].map(([val, label]) => (
+                <TouchableOpacity
+                  key={val}
+                  style={[s.calcTypeBtn, discountType === val && s.calcTypeBtnActive]}
+                  onPress={() => setDiscountType(val)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[s.calcTypeText, discountType === val && s.calcTypeTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {discountType !== 'NONE' && (
+              <TextInput
+                style={s.input}
+                value={String(discountValue)}
+                onChangeText={setDiscountValue}
+                placeholder={discountType === 'PERCENT' ? 'e.g. 10' : 'e.g. 5.00'}
+                placeholderTextColor={T.textFaint}
+                keyboardType="decimal-pad"
+              />
+            )}
+
+            <View style={s.calcTotals}>
+              <View style={s.calcTotalRow}>
+                <Text style={s.calcTotalLabel}>Subtotal</Text>
+                <Text style={s.calcTotalVal}>{fmtGbp(calcSubtotal)}</Text>
+              </View>
+              {calcDiscountAmount > 0 && (
+                <View style={s.calcTotalRow}>
+                  <Text style={s.calcTotalLabel}>Discount</Text>
+                  <Text style={[s.calcTotalVal, { color: T.red }]}>-{fmtGbp(calcDiscountAmount)}</Text>
+                </View>
+              )}
+              <View style={[s.calcTotalRow, s.calcTotalFinal]}>
+                <Text style={s.calcTotalFinalLabel}>TOTAL</Text>
+                <Text style={s.calcTotalFinalVal}>{fmtGbp(calcTotal)}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity style={s.btn} onPress={() => setShowCalc(false)} activeOpacity={0.8}>
+              <Text style={s.btnText}>DONE</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -345,6 +495,30 @@ function makeStyles(T) { return StyleSheet.create({
   pendingItem: { fontFamily: T.fontBodyMd, fontSize: 13, color: T.text, lineHeight: 22 },
   ghost: { borderWidth: 1, borderColor: T.border, paddingVertical: 13, alignItems: 'center', marginTop: 8 },
   ghostText: { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 2, color: T.textDim, textTransform: 'uppercase' },
+
+  calcBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: T.border, paddingVertical: 13, marginBottom: 4 },
+  calcBtnText: { fontFamily: T.fontBodyBd, fontSize: 12, letterSpacing: 2, color: T.text },
+
+  calcSheet: { backgroundColor: T.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '88%', padding: 20, borderTopWidth: 1, borderTopColor: T.border },
+  sheetHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  calcSectionLabel: { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 2, color: T.textDim, textTransform: 'uppercase', marginBottom: 8, marginTop: 4 },
+  calcSvcScroll: { maxHeight: 260, marginBottom: 4 },
+  calcSvcRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 10, borderWidth: 1, borderColor: T.border, marginBottom: 6 },
+  calcSvcRowOn: { borderColor: T.red, backgroundColor: T.redDim },
+  calcSvcName: { flex: 1, fontFamily: T.fontBodyMd, fontSize: 13, color: T.text },
+  calcSvcPrice: { fontFamily: T.fontBodyBd, fontSize: 13, color: T.textDim },
+  calcEmpty: { fontFamily: T.fontBody, fontSize: 13, color: T.textDim, textAlign: 'center', paddingVertical: 20 },
+  calcTypeBtn: { flex: 1, borderWidth: 1, borderColor: T.border, paddingVertical: 11, alignItems: 'center' },
+  calcTypeBtnActive: { borderColor: T.red, backgroundColor: T.redDim },
+  calcTypeText: { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 1, color: T.textDim },
+  calcTypeTextActive: { color: T.red },
+  calcTotals: { borderWidth: 1, borderColor: T.border, padding: 14, marginTop: 6, marginBottom: 14, gap: 6 },
+  calcTotalRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  calcTotalLabel: { fontFamily: T.fontBodyMd, fontSize: 13, color: T.textDim },
+  calcTotalVal: { fontFamily: T.fontBodyBd, fontSize: 13, color: T.text },
+  calcTotalFinal: { borderTopWidth: 1, borderTopColor: T.border, paddingTop: 10, marginTop: 4 },
+  calcTotalFinalLabel: { fontFamily: T.fontBodyBd, fontSize: 12, letterSpacing: 2, color: T.text },
+  calcTotalFinalVal: { fontFamily: T.fontHead, fontSize: 22, letterSpacing: 1, color: T.red },
 
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   popup: { backgroundColor: T.bg, borderWidth: 1, borderColor: T.border, borderTopWidth: 3, borderTopColor: T.red, padding: 24, width: '100%', maxWidth: 400 },
