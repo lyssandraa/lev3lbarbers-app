@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, Modal, Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useAudioPlayer } from 'expo-audio';
+import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import api from '../../../api/api';
 
 const SCAN_SOUND = require('../../../../assets/sounds/stamp-scanned.wav');
@@ -37,6 +37,12 @@ export default function StampSection() {
 
   const [permission, requestPermission] = useCameraPermissions();
   const scanSound = useAudioPlayer(SCAN_SOUND);
+
+  // iOS mutes app audio by default when the hardware silent switch is on —
+  // without this the scan chime silently never plays on a muted device.
+  useEffect(() => {
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+  }, []);
 
   const clear = () => { setSuccess(''); setError(''); };
 
@@ -92,7 +98,7 @@ export default function StampSection() {
       let msg = 'Stamp added!';
       if (res.data.newReward?.type === 'BONUS_STAMP') msg = 'Stamp added! Bonus stamp also applied.';
       setSuccess(msg);
-      try { await scanSound.seekTo(0); scanSound.play(); } catch {}
+      try { await scanSound.seekTo(0); scanSound.play(); } catch (err) { console.warn('scan sound failed', err); }
       if (res.data.claimedRewards?.length > 0) {
         setClaimedRewards(res.data.claimedRewards);
         setDeferred(new Set());
