@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Modal, Pressable,
+  Animated, PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../api/api';
@@ -9,6 +10,100 @@ import { useTheme } from '../../../context/ThemeContext';
 
 const TYPES = ['public', 'member'];
 const fmtPrice = (p) => p != null ? `£${Number(p).toFixed(2)}` : '—';
+
+// Fixed row height while reordering keeps the drag math exact (no dynamic
+// content in this mode — just name + price on one line).
+const ROW_HEIGHT = 56;
+
+function DraggableRow({ item, index, total, isDragging, dragY, onDragStart, onDragMoveEnd, T, s }) {
+  // PanResponder handlers are created once; read current index/total via
+  // refs so they're never stale inside the closures.
+  const indexRef = useRef(index);
+  indexRef.current = index;
+  const totalRef = useRef(total);
+  totalRef.current = total;
+
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => onDragStart(indexRef.current),
+      onPanResponderMove: (_, g) => dragY.setValue(g.dy),
+      onPanResponderRelease: (_, g) => onDragMoveEnd(g.dy, indexRef.current, totalRef.current),
+      onPanResponderTerminate: (_, g) => onDragMoveEnd(g.dy, indexRef.current, totalRef.current),
+    })
+  ).current;
+
+  return (
+    <Animated.View
+      style={[
+        s.dragRow,
+        isDragging && {
+          zIndex: 10, elevation: 6, shadowOpacity: 0.25, shadowRadius: 8,
+          transform: [{ translateY: dragY }],
+        },
+      ]}
+    >
+      <Text style={s.dragName} numberOfLines={1}>{item.name}</Text>
+      <Text style={s.svcPrice}>{fmtPrice(item.price)}</Text>
+      <View {...pan.panHandlers} style={s.dragHandle} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Ionicons name="reorder-three" size={22} color={T.textDim} />
+      </View>
+    </Animated.View>
+  );
+}
+
+function DraggableGroup({ items, onReorder, T, s }) {
+  const [data, setData] = useState(items);
+  useEffect(() => { setData(items); }, [items]);
+
+  const [activeIndex, setActiveIndex] = useState(null);
+  const dragY = useRef(new Animated.Value(0)).current;
+
+  const handleDragStart = (index) => {
+    dragY.setValue(0);
+    setActiveIndex(index);
+  };
+
+  const handleDragMoveEnd = (dy, fromIndex, total) => {
+    const to = Math.max(0, Math.min(total - 1, fromIndex + Math.round(dy / ROW_HEIGHT)));
+    Animated.timing(dragY, {
+      toValue: (to - fromIndex) * ROW_HEIGHT,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      dragY.setValue(0);
+      setActiveIndex(null);
+      if (to !== fromIndex) {
+        setData(prev => {
+          const next = [...prev];
+          const [moved] = next.splice(fromIndex, 1);
+          next.splice(to, 0, moved);
+          onReorder(next);
+          return next;
+        });
+      }
+    });
+  };
+
+  return (
+    <View>
+      {data.map((item, i) => (
+        <DraggableRow
+          key={item.id}
+          item={item}
+          index={i}
+          total={data.length}
+          isDragging={activeIndex === i}
+          dragY={dragY}
+          onDragStart={handleDragStart}
+          onDragMoveEnd={handleDragMoveEnd}
+          T={T}
+          s={s}
+        />
+      ))}
+    </View>
+  );
+}
 
 export default function ServicesSection() {
   const { T } = useTheme();
@@ -20,6 +115,7 @@ export default function ServicesSection() {
   const [editing,  setEditing]  = useState(null);
   const [form,     setForm]     = useState({ name: '', description: '', price: '', type: 'public' });
   const [saving,   setSaving]   = useState(false);
+  const [reorderMode, setReorderMode] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,6 +159,18 @@ export default function ServicesSection() {
     ]);
   };
 
+  const handleReorder = async (newItems) => {
+    try {
+      await api.put('/services/reorder-services', {
+        services: newItems.map((svc, idx) => ({ id: svc.id, order: idx })),
+      });
+      load();
+    } catch {
+      Alert.alert('Error', 'Could not save the new order.');
+      load();
+    }
+  };
+
   const public_svcs = services.filter(s => s.type === 'public');
   const member_svcs = services.filter(s => s.type === 'member');
 
@@ -71,34 +179,54 @@ export default function ServicesSection() {
   return (
     <>
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        <TouchableOpacity style={s.addBtn} onPress={openAdd} activeOpacity={0.8}>
-          <Ionicons name="add" size={16} color="#fff" />
-          <Text style={s.addBtnText}>ADD SERVICE</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+          {!reorderMode && (
+            <TouchableOpacity style={[s.addBtn, { flex: 1, marginBottom: 0 }]} onPress={openAdd} activeOpacity={0.8}>
+              <Ionicons name="add" size={16} color="#fff" />
+              <Text style={s.addBtnText}>ADD SERVICE</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[s.reorderBtn, reorderMode && s.reorderBtnActive, !reorderMode && { flex: 0, paddingHorizontal: 20 }]}
+            onPress={() => setReorderMode(v => !v)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name={reorderMode ? 'checkmark' : 'reorder-three-outline'} size={16} color={reorderMode ? '#fff' : T.text} />
+            <Text style={[s.reorderBtnText, reorderMode && { color: '#fff' }]}>{reorderMode ? 'DONE' : 'REORDER'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {reorderMode && (
+          <Text style={s.reorderHint}>Drag the handle to reorder within a group. Order is saved automatically.</Text>
+        )}
 
         {[['PUBLIC SERVICES', public_svcs], ['MEMBER SERVICES', member_svcs]].map(([label, list]) => (
           list.length > 0 && (
             <View key={label} style={{ marginBottom: 14 }}>
               <Text style={s.groupLabel}>{label}</Text>
-              {list.map(svc => (
-                <View key={svc.id} style={s.card}>
-                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.svcName}>{svc.name}</Text>
-                      {svc.description && <Text style={s.svcDesc} numberOfLines={2}>{svc.description}</Text>}
+              {reorderMode ? (
+                <DraggableGroup items={list} onReorder={handleReorder} T={T} s={s} />
+              ) : (
+                list.map(svc => (
+                  <View key={svc.id} style={s.card}>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.svcName}>{svc.name}</Text>
+                        {svc.description && <Text style={s.svcDesc} numberOfLines={2}>{svc.description}</Text>}
+                      </View>
+                      <Text style={s.svcPrice}>{fmtPrice(svc.price)}</Text>
                     </View>
-                    <Text style={s.svcPrice}>{fmtPrice(svc.price)}</Text>
+                    <View style={s.actionRow}>
+                      <TouchableOpacity style={s.iconBtn} onPress={() => openEdit(svc)}>
+                        <Ionicons name="pencil-outline" size={15} color={T.textDim} />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[s.iconBtn, { borderColor: T.red }]} onPress={() => remove(svc)}>
+                        <Ionicons name="trash-outline" size={15} color={T.red} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <View style={s.actionRow}>
-                    <TouchableOpacity style={s.iconBtn} onPress={() => openEdit(svc)}>
-                      <Ionicons name="pencil-outline" size={15} color={T.textDim} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[s.iconBtn, { borderColor: T.red }]} onPress={() => remove(svc)}>
-                      <Ionicons name="trash-outline" size={15} color={T.red} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
+                ))
+              )}
             </View>
           )
         ))}
@@ -154,6 +282,19 @@ function makeStyles(T) { return StyleSheet.create({
   iconBtn: { width: 34, height: 34, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', borderRadius: 4 },
   addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: T.red, paddingVertical: 13, marginBottom: 14 },
   addBtnText: { fontFamily: T.fontHead, fontSize: 14, letterSpacing: 3, color: '#fff' },
+
+  reorderBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: T.border, paddingVertical: 13 },
+  reorderBtnActive: { backgroundColor: T.red, borderColor: T.red },
+  reorderBtnText: { fontFamily: T.fontBodyBd, fontSize: 12, letterSpacing: 2, color: T.text },
+  reorderHint: { fontFamily: T.fontBody, fontSize: 12, color: T.textDim, marginBottom: 10, lineHeight: 17 },
+
+  dragRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    height: ROW_HEIGHT, paddingHorizontal: 14,
+    backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, marginBottom: 8,
+  },
+  dragName: { flex: 1, fontFamily: T.fontBodyBd, fontSize: 14, color: T.text },
+  dragHandle: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: T.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%', paddingTop: 8, borderTopWidth: 1, borderTopColor: T.border },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: T.border },
