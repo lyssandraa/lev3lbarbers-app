@@ -26,6 +26,14 @@ function DraggableRow({ item, index, total, isDragging, dragY, onDragStart, onDr
   const pan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      // Without this, the enclosing ScrollView can steal the gesture the
+      // moment it detects vertical movement, which is what made dragging
+      // feel like it kept slipping out of your hand.
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
       onPanResponderGrant: () => onDragStart(indexRef.current),
       onPanResponderMove: (_, g) => dragY.setValue(g.dy),
       onPanResponderRelease: (_, g) => onDragMoveEnd(g.dy, indexRef.current, totalRef.current),
@@ -45,14 +53,14 @@ function DraggableRow({ item, index, total, isDragging, dragY, onDragStart, onDr
     >
       <Text style={s.dragName} numberOfLines={1}>{item.name}</Text>
       <Text style={s.svcPrice}>{fmtPrice(item.price)}</Text>
-      <View {...pan.panHandlers} style={s.dragHandle} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Ionicons name="reorder-three" size={22} color={T.textDim} />
+      <View {...pan.panHandlers} style={s.dragHandle} hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}>
+        <Ionicons name="reorder-three" size={24} color={T.textDim} />
       </View>
     </Animated.View>
   );
 }
 
-function DraggableGroup({ items, onReorder, T, s }) {
+function DraggableGroup({ items, onReorder, onDragActiveChange, T, s }) {
   const [data, setData] = useState(items);
   useEffect(() => { setData(items); }, [items]);
 
@@ -62,6 +70,7 @@ function DraggableGroup({ items, onReorder, T, s }) {
   const handleDragStart = (index) => {
     dragY.setValue(0);
     setActiveIndex(index);
+    onDragActiveChange?.(true);
   };
 
   const handleDragMoveEnd = (dy, fromIndex, total) => {
@@ -73,6 +82,7 @@ function DraggableGroup({ items, onReorder, T, s }) {
     }).start(() => {
       dragY.setValue(0);
       setActiveIndex(null);
+      onDragActiveChange?.(false);
       if (to !== fromIndex) {
         setData(prev => {
           const next = [...prev];
@@ -116,6 +126,7 @@ export default function ServicesSection() {
   const [form,     setForm]     = useState({ name: '', description: '', price: '', type: 'public' });
   const [saving,   setSaving]   = useState(false);
   const [reorderMode, setReorderMode] = useState(false);
+  const [dragActive,  setDragActive]  = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -178,7 +189,7 @@ export default function ServicesSection() {
 
   return (
     <>
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+      <ScrollView style={s.scroll} contentContainerStyle={s.content} scrollEnabled={!dragActive}>
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
           {!reorderMode && (
             <TouchableOpacity style={[s.addBtn, { flex: 1, marginBottom: 0 }]} onPress={openAdd} activeOpacity={0.8}>
@@ -205,7 +216,7 @@ export default function ServicesSection() {
             <View key={label} style={{ marginBottom: 14 }}>
               <Text style={s.groupLabel}>{label}</Text>
               {reorderMode ? (
-                <DraggableGroup items={list} onReorder={handleReorder} T={T} s={s} />
+                <DraggableGroup items={list} onReorder={handleReorder} onDragActiveChange={setDragActive} T={T} s={s} />
               ) : (
                 list.map(svc => (
                   <View key={svc.id} style={s.card}>
@@ -294,7 +305,7 @@ function makeStyles(T) { return StyleSheet.create({
     backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, marginBottom: 8,
   },
   dragName: { flex: 1, fontFamily: T.fontBodyBd, fontSize: 14, color: T.text },
-  dragHandle: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  dragHandle: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: T.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%', paddingTop: 8, borderTopWidth: 1, borderTopColor: T.border },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: T.border },

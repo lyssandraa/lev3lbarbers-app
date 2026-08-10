@@ -368,7 +368,7 @@ export default function StampSection() {
         </Pressable>
       </Modal>
 
-      <Modal visible={showCalc} transparent animationType="slide" onRequestClose={() => setShowCalc(false)}>
+      <Modal visible={showCalc} transparent animationType="fade" onRequestClose={() => setShowCalc(false)}>
         <Pressable style={s.overlay} onPress={() => setShowCalc(false)}>
           <Pressable style={s.calcSheet} onPress={() => {}}>
             <View style={s.sheetHeaderRow}>
@@ -378,74 +378,76 @@ export default function StampSection() {
               </TouchableOpacity>
             </View>
 
-            <Text style={s.calcSectionLabel}>SERVICES DONE</Text>
-            {calcLoading ? (
-              <ActivityIndicator color={T.red} style={{ marginVertical: 20 }} />
-            ) : (
-              <ScrollView style={s.calcSvcScroll}>
-                {(allServices || []).map(svc => {
-                  const on = calcSelected.has(svc.id);
-                  return (
-                    <TouchableOpacity
-                      key={svc.id}
-                      style={[s.calcSvcRow, on && s.calcSvcRowOn]}
-                      onPress={() => toggleCalcService(svc.id)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name={on ? 'checkbox' : 'square-outline'} size={18} color={on ? T.red : T.textDim} />
-                      <Text style={s.calcSvcName} numberOfLines={1}>{svc.name}</Text>
-                      <Text style={s.calcSvcPrice}>{svc.price != null ? fmtGbp(svc.price) : '—'}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-                {(!allServices || allServices.length === 0) && (
-                  <Text style={s.calcEmpty}>No services set up yet.</Text>
-                )}
-              </ScrollView>
-            )}
-
-            <Text style={s.calcSectionLabel}>DISCOUNT</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
-              {[['NONE', 'None'], ['PERCENT', '% OFF'], ['FIXED', '£ OFF']].map(([val, label]) => (
-                <TouchableOpacity
-                  key={val}
-                  style={[s.calcTypeBtn, discountType === val && s.calcTypeBtnActive]}
-                  onPress={() => setDiscountType(val)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[s.calcTypeText, discountType === val && s.calcTypeTextActive]}>{label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {discountType !== 'NONE' && (
-              <TextInput
-                style={s.input}
-                value={String(discountValue)}
-                onChangeText={setDiscountValue}
-                placeholder={discountType === 'PERCENT' ? 'e.g. 10' : 'e.g. 5.00'}
-                placeholderTextColor={T.textFaint}
-                keyboardType="decimal-pad"
-              />
-            )}
-
-            <View style={s.calcTotals}>
-              <View style={s.calcTotalRow}>
-                <Text style={s.calcTotalLabel}>Subtotal</Text>
-                <Text style={s.calcTotalVal}>{fmtGbp(calcSubtotal)}</Text>
-              </View>
-              {calcDiscountAmount > 0 && (
-                <View style={s.calcTotalRow}>
-                  <Text style={s.calcTotalLabel}>Discount</Text>
-                  <Text style={[s.calcTotalVal, { color: T.red }]}>-{fmtGbp(calcDiscountAmount)}</Text>
+            <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
+              <Text style={s.calcSectionLabel}>SERVICES DONE</Text>
+              {calcLoading ? (
+                <ActivityIndicator color={T.red} style={{ marginVertical: 20 }} />
+              ) : (
+                <View style={s.calcSvcGrid}>
+                  {(allServices || []).map(svc => {
+                    const on = calcSelected.has(svc.id);
+                    return (
+                      <TouchableOpacity
+                        key={svc.id}
+                        style={[s.calcSvcRow, on && s.calcSvcRowOn]}
+                        onPress={() => toggleCalcService(svc.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name={on ? 'checkbox' : 'square-outline'} size={18} color={on ? T.red : T.textDim} />
+                        <Text style={s.calcSvcName} numberOfLines={1}>{svc.name}</Text>
+                        <Text style={s.calcSvcPrice}>{svc.price != null ? fmtGbp(svc.price) : '—'}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                  {(!allServices || allServices.length === 0) && (
+                    <Text style={s.calcEmpty}>No services set up yet.</Text>
+                  )}
                 </View>
               )}
-              <View style={[s.calcTotalRow, s.calcTotalFinal]}>
-                <Text style={s.calcTotalFinalLabel}>TOTAL</Text>
-                <Text style={s.calcTotalFinalVal}>{fmtGbp(calcTotal)}</Text>
-              </View>
-            </View>
 
-            <TouchableOpacity style={s.btn} onPress={() => setShowCalc(false)} activeOpacity={0.8}>
+              <Text style={s.calcSectionLabel}>DISCOUNT</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                {[['NONE', 'None'], ['PERCENT', '% OFF'], ['FIXED', '£ OFF']].map(([val, label]) => (
+                  <TouchableOpacity
+                    key={val}
+                    style={[s.calcTypeBtn, discountType === val && s.calcTypeBtnActive]}
+                    onPress={() => setDiscountType(val)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[s.calcTypeText, discountType === val && s.calcTypeTextActive]}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {discountType !== 'NONE' && (
+                <TextInput
+                  style={s.input}
+                  value={String(discountValue)}
+                  onChangeText={setDiscountValue}
+                  placeholder={discountType === 'PERCENT' ? 'e.g. 10' : 'e.g. 5.00'}
+                  placeholderTextColor={T.textFaint}
+                  keyboardType="decimal-pad"
+                />
+              )}
+
+              <View style={s.calcTotals}>
+                <View style={s.calcTotalRow}>
+                  <Text style={s.calcTotalLabel}>Subtotal</Text>
+                  <Text style={s.calcTotalVal}>{fmtGbp(calcSubtotal)}</Text>
+                </View>
+                {calcDiscountAmount > 0 && (
+                  <View style={s.calcTotalRow}>
+                    <Text style={s.calcTotalLabel}>Discount</Text>
+                    <Text style={[s.calcTotalVal, { color: T.red }]}>-{fmtGbp(calcDiscountAmount)}</Text>
+                  </View>
+                )}
+                <View style={[s.calcTotalRow, s.calcTotalFinal]}>
+                  <Text style={s.calcTotalFinalLabel}>TOTAL</Text>
+                  <Text style={s.calcTotalFinalVal}>{fmtGbp(calcTotal)}</Text>
+                </View>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity style={[s.btn, { marginTop: 14 }]} onPress={() => setShowCalc(false)} activeOpacity={0.8}>
               <Text style={s.btnText}>DONE</Text>
             </TouchableOpacity>
           </Pressable>
@@ -499,11 +501,19 @@ function makeStyles(T) { return StyleSheet.create({
   calcBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: T.border, paddingVertical: 13, marginBottom: 4 },
   calcBtnText: { fontFamily: T.fontBodyBd, fontSize: 12, letterSpacing: 2, color: T.text },
 
-  calcSheet: { backgroundColor: T.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '88%', padding: 20, borderTopWidth: 1, borderTopColor: T.border },
+  calcSheet: {
+    backgroundColor: T.bg,
+    width: '92%', maxWidth: 620, maxHeight: '85%',
+    padding: 22,
+    borderWidth: 1, borderColor: T.border, borderTopWidth: 3, borderTopColor: T.red,
+  },
   sheetHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   calcSectionLabel: { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 2, color: T.textDim, textTransform: 'uppercase', marginBottom: 8, marginTop: 4 },
-  calcSvcScroll: { maxHeight: 260, marginBottom: 4 },
-  calcSvcRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 10, borderWidth: 1, borderColor: T.border, marginBottom: 6 },
+  // Two columns on wide layouts (landscape iPad), collapses to one when
+  // the sheet is narrower (portrait / smaller screens) — pure flexbox,
+  // no orientation detection needed.
+  calcSvcGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  calcSvcRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 10, borderWidth: 1, borderColor: T.border, minWidth: 220, flexGrow: 1, flexBasis: '46%' },
   calcSvcRowOn: { borderColor: T.red, backgroundColor: T.redDim },
   calcSvcName: { flex: 1, fontFamily: T.fontBodyMd, fontSize: 13, color: T.text },
   calcSvcPrice: { fontFamily: T.fontBodyBd, fontSize: 13, color: T.textDim },
