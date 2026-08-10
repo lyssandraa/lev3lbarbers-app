@@ -63,7 +63,8 @@ export default function StampSection() {
     const scannedEmail = data.trim().toLowerCase();
     setEmail(scannedEmail);
     lookupUser(scannedEmail);
-  }, [lookupUser]);
+    scanSound.seekTo(0).then(() => scanSound.play()).catch(err => console.warn('scan sound failed', err));
+  }, [lookupUser, scanSound]);
 
   const startScan = useCallback(async () => {
     if (!permission?.granted) {
@@ -98,7 +99,6 @@ export default function StampSection() {
       let msg = 'Stamp added!';
       if (res.data.newReward?.type === 'BONUS_STAMP') msg = 'Stamp added! Bonus stamp also applied.';
       setSuccess(msg);
-      try { await scanSound.seekTo(0); scanSound.play(); } catch (err) { console.warn('scan sound failed', err); }
       if (res.data.claimedRewards?.length > 0) {
         setClaimedRewards(res.data.claimedRewards);
         setDeferred(new Set());
