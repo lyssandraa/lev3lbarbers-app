@@ -1,13 +1,16 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, ActivityIndicator, Animated,
+  TouchableOpacity, ActivityIndicator, Animated, Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import PriceCountUp from '../../components/PriceCountUp';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import api from '../../api/api';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import ServiceFormModal from '../../components/ServiceFormModal';
 
 const INTRO_DEFAULT =
   'Crafted for every man. We cater to all hair types — afro, curly, straight and more. Other services available upon request.';
@@ -18,7 +21,7 @@ function fmtPrice(price) {
   return `£${n % 1 === 0 ? Math.round(n) : n.toFixed(2)}`;
 }
 
-function ServiceCard({ item, index, loggedIn }) {
+function ServiceCard({ item, index, loggedIn, isAdmin, onEdit, onDelete }) {
   const { T, isDark } = useTheme();
   const cs = useMemo(() => makeCardStyles(T, isDark), [T, isDark]);
   const num = String(index + 1).padStart(2, '0');
@@ -56,6 +59,16 @@ function ServiceCard({ item, index, loggedIn }) {
             <Text style={cs.locked}>MEMBERS ONLY</Text>
           )}
         </View>
+        {isAdmin && (
+          <View style={cs.adminRow}>
+            <TouchableOpacity style={cs.adminIconBtn} onPress={() => onEdit(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="pencil-outline" size={14} color={T.textDim} />
+            </TouchableOpacity>
+            <TouchableOpacity style={[cs.adminIconBtn, { borderColor: T.red }]} onPress={() => onDelete(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="trash-outline" size={14} color={T.red} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
     </Animated.View>
@@ -65,6 +78,7 @@ function ServiceCard({ item, index, loggedIn }) {
 export default function ServicesScreen() {
   const { T } = useTheme();
   const s = useMemo(() => makeStyles(T), [T]);
+  const { isAdmin } = useAuth();
   const navigation              = useNavigation();
   const scrollRef               = useRef(null);
   const [services,  setServices]  = useState([]);
@@ -72,6 +86,8 @@ export default function ServicesScreen() {
   const [loggedIn,  setLoggedIn]  = useState(false);
   const [intro,     setIntro]     = useState(INTRO_DEFAULT);
   const [title,     setTitle]     = useState(TITLE_DEFAULT);
+  const [showForm,     setShowForm]     = useState(false);
+  const [editingSvc,   setEditingSvc]   = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -86,31 +102,44 @@ export default function ServicesScreen() {
     }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const token = await AsyncStorage.getItem('token');
-        setLoggedIn(!!token);
-        if (token) {
-          try {
-            const r = await api.get('/services/all-services');
-            setServices(r.data.allServices || []);
-            return;
-          } catch (err) {
-            if (!err.response || (err.response.status !== 401 && err.response.status !== 403)) throw err;
-          }
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      setLoggedIn(!!token);
+      if (token) {
+        try {
+          const r = await api.get('/services/all-services');
+          setServices(r.data.allServices || []);
+          return;
+        } catch (err) {
+          if (!err.response || (err.response.status !== 401 && err.response.status !== 403)) throw err;
         }
-        const r = await api.get('/services/public-services');
-        setServices(r.data.services || []);
-      } catch {
-        setServices([]);
-      } finally {
-        setLoading(false);
       }
-    };
-    load();
+      const r = await api.get('/services/public-services');
+      setServices(r.data.services || []);
+    } catch {
+      setServices([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const openAdd  = () => { setEditingSvc(null); setShowForm(true); };
+  const openEdit = (svc) => { setEditingSvc(svc); setShowForm(true); };
+  const onSaved  = () => { setShowForm(false); load(); };
+
+  const removeService = (svc) => {
+    Alert.alert('Delete Service', `Remove "${svc.name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try { await api.delete(`/services/delete-service/${svc.id}`); load(); }
+        catch { Alert.alert('Error', 'Could not delete.'); }
+      }},
+    ]);
+  };
 
   return (
     <ScrollView ref={scrollRef} style={s.root} contentContainerStyle={s.content}>
@@ -119,6 +148,12 @@ export default function ServicesScreen() {
         <Text style={s.eyebrow}>THE MENU</Text>
         <Text style={s.title}>{title.toUpperCase()}</Text>
         <Text style={s.sub}>{intro}</Text>
+        {isAdmin && (
+          <TouchableOpacity style={s.addSvcBtn} onPress={openAdd} activeOpacity={0.8}>
+            <Ionicons name="add" size={16} color="#fff" />
+            <Text style={s.addSvcBtnText}>ADD SERVICE</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Service grid */}
@@ -129,7 +164,15 @@ export default function ServicesScreen() {
       ) : (
         <View style={s.grid}>
           {services.map((svc, i) => (
-            <ServiceCard key={svc.id} item={svc} index={i} loggedIn={loggedIn} />
+            <ServiceCard
+              key={svc.id}
+              item={svc}
+              index={i}
+              loggedIn={loggedIn}
+              isAdmin={isAdmin}
+              onEdit={openEdit}
+              onDelete={removeService}
+            />
           ))}
         </View>
       )}
@@ -155,6 +198,15 @@ export default function ServicesScreen() {
             <Text style={s.ghostBtn}>Already a member? Sign in</Text>
           </TouchableOpacity>
         </View>
+      )}
+
+      {isAdmin && (
+        <ServiceFormModal
+          visible={showForm}
+          editing={editingSvc}
+          onClose={() => setShowForm(false)}
+          onSaved={onSaved}
+        />
       )}
     </ScrollView>
   );
@@ -192,6 +244,8 @@ function makeCardStyles(T, isDark) { return StyleSheet.create({
   priceLine: { borderTopWidth: 1, borderTopColor: T.border, paddingTop: 14, marginTop: 4 },
   price:  { fontFamily: T.fontHead, fontSize: 22, letterSpacing: 2, color: T.text },
   locked: { fontFamily: T.fontBodyBd, fontSize: 10, letterSpacing: 3, color: T.textDim },
+  adminRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  adminIconBtn: { width: 30, height: 30, borderWidth: 1, borderColor: T.border, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
 }); }
 
 /* ─── Screen styles ─── */
@@ -203,6 +257,8 @@ function makeStyles(T) { return StyleSheet.create({
   eyebrow: { fontFamily: T.fontBodyBd, fontSize: 10, letterSpacing: 3, color: T.textDim, textTransform: 'uppercase', marginBottom: 8 },
   title: { fontFamily: T.fontHead, fontSize: 64, letterSpacing: 4, color: T.text, lineHeight: 64, marginBottom: 16 },
   sub: { fontFamily: T.fontBodyMd, fontSize: 13, color: T.textDim, lineHeight: 22, maxWidth: 320 },
+  addSvcBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: T.red, alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 11, marginTop: 18 },
+  addSvcBtnText: { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 1.5, color: '#fff' },
 
   grid: { paddingHorizontal: 24 },
 

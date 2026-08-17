@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Modal, Pressable,
+  ActivityIndicator, Alert,
   Animated, PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../api/api';
 import { useTheme } from '../../../context/ThemeContext';
+import ServiceFormModal from '../../../components/ServiceFormModal';
 
-const TYPES = ['public', 'member'];
 const fmtPrice = (p) => p != null ? `£${Number(p).toFixed(2)}` : '—';
 
 // Fixed row height while reordering keeps the drag math exact (no dynamic
@@ -134,8 +134,6 @@ export default function ServicesSection() {
   const [loading,  setLoading]  = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing,  setEditing]  = useState(null);
-  const [form,     setForm]     = useState({ name: '', description: '', price: '', type: 'public' });
-  const [saving,   setSaving]   = useState(false);
   const [reorderMode, setReorderMode] = useState(false);
   const [dragActive,  setDragActive]  = useState(false);
 
@@ -150,26 +148,9 @@ export default function ServicesSection() {
 
   useEffect(() => { load(); }, [load]);
 
-  const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }));
-
-  const openAdd = () => { setEditing(null); setForm({ name: '', description: '', price: '', type: 'public' }); setShowForm(true); };
-  const openEdit = (svc) => { setEditing(svc); setForm({ name: svc.name || '', description: svc.description || '', price: svc.price != null ? String(svc.price) : '', type: svc.type || 'public' }); setShowForm(true); };
-
-  const save = async () => {
-    if (!form.name.trim()) { Alert.alert('Required', 'Service name is required.'); return; }
-    setSaving(true);
-    try {
-      const body = { name: form.name, description: form.description, price: form.price ? Number(form.price) : null, type: form.type };
-      if (editing) {
-        await api.put(`/services/edit-service/${editing.id}`, body);
-      } else {
-        await api.post('/services/add-service', body);
-      }
-      setShowForm(false);
-      load();
-    } catch (err) { Alert.alert('Error', err.response?.data?.message || 'Could not save.'); }
-    finally { setSaving(false); }
-  };
+  const openAdd  = () => { setEditing(null); setShowForm(true); };
+  const openEdit = (svc) => { setEditing(svc); setShowForm(true); };
+  const onSaved  = () => { setShowForm(false); load(); };
 
   const remove = (svc) => {
     Alert.alert('Delete Service', `Remove "${svc.name}"?`, [
@@ -255,39 +236,12 @@ export default function ServicesSection() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      <Modal visible={showForm} transparent animationType="slide" onRequestClose={() => setShowForm(false)}>
-        <Pressable style={s.overlay} onPress={() => setShowForm(false)}>
-          <Pressable style={s.sheet} onPress={() => {}}>
-            <View style={s.sheetHeader}>
-              <Text style={s.sheetTitle}>{editing ? 'EDIT SERVICE' : 'NEW SERVICE'}</Text>
-              <TouchableOpacity onPress={() => setShowForm(false)}>
-                <Ionicons name="close" size={20} color={T.text} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={{ padding: 20 }}>
-              <Text style={s.fieldLabel}>NAME *</Text>
-              <TextInput style={s.input} value={form.name} onChangeText={set('name')} placeholder="e.g. Classic Haircut" placeholderTextColor={T.textFaint} />
-              <Text style={s.fieldLabel}>DESCRIPTION</Text>
-              <TextInput style={[s.input, { height: 70, textAlignVertical: 'top' }]} value={form.description} onChangeText={set('description')} placeholder="Optional description…" placeholderTextColor={T.textFaint} multiline />
-              <Text style={s.fieldLabel}>PRICE (£)</Text>
-              <TextInput style={s.input} value={form.price} onChangeText={set('price')} placeholder="e.g. 25" placeholderTextColor={T.textFaint} keyboardType="decimal-pad" />
-              <Text style={s.fieldLabel}>TYPE</Text>
-              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
-                {TYPES.map(t => (
-                  <TouchableOpacity key={t} style={[s.typeChip, form.type === t && s.typeChipActive]} onPress={() => set('type')(t)} activeOpacity={0.7}>
-                    <Text style={[s.typeChipText, form.type === t && s.typeChipTextActive]}>{t.toUpperCase()}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <Text style={s.typeHint}>{form.type === 'member' ? 'Visible only to logged-in members with price.' : 'Visible to all users (price shown to members only).'}</Text>
-              <TouchableOpacity style={[s.btn, saving && s.btnDim]} onPress={save} disabled={saving} activeOpacity={0.8}>
-                {saving ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>SAVE SERVICE</Text>}
-              </TouchableOpacity>
-              <View style={{ height: 40 }} />
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <ServiceFormModal
+        visible={showForm}
+        editing={editing}
+        onClose={() => setShowForm(false)}
+        onSaved={onSaved}
+      />
     </>
   );
 }
@@ -317,18 +271,4 @@ function makeStyles(T) { return StyleSheet.create({
   },
   dragName: { flex: 1, fontFamily: T.fontBodyBd, fontSize: 14, color: T.text },
   dragHandle: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: T.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%', paddingTop: 8, borderTopWidth: 1, borderTopColor: T.border },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: T.border },
-  sheetTitle: { fontFamily: T.fontHead, fontSize: 18, letterSpacing: 2, color: T.text },
-  fieldLabel: { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 2, color: T.textDim, textTransform: 'uppercase', marginBottom: 6, marginTop: 4 },
-  input: { backgroundColor: T.card, borderWidth: 1, borderColor: T.border, color: T.text, fontFamily: T.fontBody, fontSize: 14, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 },
-  typeChip: { flex: 1, borderWidth: 1, borderColor: T.border, paddingVertical: 10, alignItems: 'center' },
-  typeChipActive: { borderColor: T.red, backgroundColor: T.redDim },
-  typeChipText: { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 1, color: T.textDim },
-  typeChipTextActive: { color: T.red },
-  typeHint: { fontFamily: T.fontBody, fontSize: 11, color: T.textFaint, marginBottom: 14 },
-  btn: { backgroundColor: T.red, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
-  btnDim: { opacity: 0.5 },
-  btnText: { fontFamily: T.fontHead, fontSize: 14, letterSpacing: 3, color: '#fff' },
 }); }
