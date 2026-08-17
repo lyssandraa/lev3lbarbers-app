@@ -46,7 +46,13 @@
         }
       ],
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow LEV3LBARBERS to choose photos for the gallery and shop."
+        }
+      ]
     ],
     "extra": {
       "eas": {
