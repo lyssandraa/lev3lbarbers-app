@@ -72,6 +72,7 @@ export default function AppBanner() {
   if (!messages.length) return null;
 
   const page = messages[idx]?.page?.trim().toLowerCase().replace(/^\//, '');
+  const target = page && (PAGE_TABS[page] || PAGE_STACK[page]);
   const handlePress = () => {
     if (!page) return;
     if (PAGE_TABS[page])  { navigation.navigate('MainApp', { screen: PAGE_TABS[page] }); return; }
@@ -79,7 +80,7 @@ export default function AppBanner() {
   };
 
   return (
-    <Pressable onPress={handlePress} disabled={!page}>
+    <Pressable onPress={handlePress} disabled={!target}>
       <View style={[s.wrap, { height: 44 + insets.top, paddingTop: insets.top }]}>
         <Animated.View
           style={[s.track, { transform: [{ translateX: x }] }]}

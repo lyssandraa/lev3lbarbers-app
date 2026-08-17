@@ -271,18 +271,23 @@ function MainTabs() {
 const navigationRef = createNavigationContainerRef();
 
 export default function AppNavigator() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { shopMode, ready: shopModeReady } = useShopMode();
 
   // Shop Mode: when nobody's logged in on this device, the barber picker is
   // the landing screen instead of the customer app. `initialRouteName`
   // only applies at first mount, so react to `showKiosk` changing later
-  // (e.g. staff logs out) by imperatively resetting the stack.
+  // (e.g. staff logs out) by imperatively resetting the stack. Waiting on
+  // authLoading too matters: without it, `user` reads as null (not yet
+  // restored from AsyncStorage) on every cold launch, so a device with a
+  // valid cached session would briefly flash the kiosk screen before this
+  // effect corrected it a moment later.
   const showKiosk = shopMode && !user;
   const prevShowKiosk = useRef(null);
+  const ready = shopModeReady && !authLoading;
 
   useEffect(() => {
-    if (!shopModeReady) return;
+    if (!ready) return;
     if (prevShowKiosk.current === null) {
       prevShowKiosk.current = showKiosk;
       return;
@@ -296,9 +301,9 @@ export default function AppNavigator() {
         });
       }
     }
-  }, [showKiosk, shopModeReady]);
+  }, [showKiosk, ready]);
 
-  if (!shopModeReady) return null;
+  if (!ready) return null;
 
   return (
     <NavigationContainer ref={navigationRef}>

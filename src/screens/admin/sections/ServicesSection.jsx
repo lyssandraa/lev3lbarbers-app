@@ -66,23 +66,34 @@ function DraggableGroup({ items, onReorder, onDragActiveChange, T, s }) {
 
   const [activeIndex, setActiveIndex] = useState(null);
   const dragY = useRef(new Animated.Value(0)).current;
+  // Bumped on every new drag so a settle-animation callback from a PREVIOUS
+  // drag (interrupted mid-flight because a new one started) can tell it's
+  // stale and skip clobbering the new drag's state — see handleDragMoveEnd.
+  const dragTokenRef = useRef(0);
 
   const handleDragStart = (index) => {
+    dragTokenRef.current += 1;
     dragY.setValue(0);
     setActiveIndex(index);
     onDragActiveChange?.(true);
   };
 
   const handleDragMoveEnd = (dy, fromIndex, total) => {
+    const token = dragTokenRef.current;
     const to = Math.max(0, Math.min(total - 1, fromIndex + Math.round(dy / ROW_HEIGHT)));
     Animated.timing(dragY, {
       toValue: (to - fromIndex) * ROW_HEIGHT,
       duration: 150,
       useNativeDriver: true,
     }).start(() => {
-      dragY.setValue(0);
-      setActiveIndex(null);
-      onDragActiveChange?.(false);
+      // Only reset to "idle" if a newer drag hasn't already taken over —
+      // otherwise this is a stale callback and resetting now would yank
+      // dragY/activeIndex out from under the drag that's actually active.
+      if (dragTokenRef.current === token) {
+        dragY.setValue(0);
+        setActiveIndex(null);
+        onDragActiveChange?.(false);
+      }
       if (to !== fromIndex) {
         setData(prev => {
           const next = [...prev];

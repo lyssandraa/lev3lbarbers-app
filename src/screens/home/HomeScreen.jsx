@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
 import { resolveImageUrl } from '../../config';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -115,6 +116,10 @@ function makeCsStyles(T) { return StyleSheet.create({
 export default function HomeScreen({ navigation }) {
   const { T, isDark } = useTheme();
   const s = useMemo(() => makeStyles(T), [T]);
+  const { isShopUser, isAdmin } = useAuth();
+  // STAFF-only accounts don't have a Play tab (see AppNavigator's role-based
+  // tab set) — hide the CTA that links to it rather than leave a dead tap.
+  const canPlay = !isShopUser || isAdmin;
 
   // Hero
   const [heroImages,  setHeroImages]  = useState([]);
@@ -492,18 +497,20 @@ export default function HomeScreen({ navigation }) {
                   <Text style={[s.statusText, { color: current?.color }]}>{current?.label}</Text>
                   <Text style={s.statusDesc}>{current?.desc}</Text>
 
-                  <TouchableOpacity
-                    style={s.snakeCard}
-                    onPress={() => navigation.navigate('Play')}
-                    activeOpacity={0.82}
-                  >
-                    <Ionicons name="game-controller-outline" size={20} color="#42a5f5" />
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.snakeCardTitle}>Think you can top the board?</Text>
-                      <Text style={s.snakeCardSub}>Snake & Ping Pong · weekly prize up for grabs</Text>
-                    </View>
-                    <Text style={s.snakeCardArrow}>→</Text>
-                  </TouchableOpacity>
+                  {canPlay && (
+                    <TouchableOpacity
+                      style={s.snakeCard}
+                      onPress={() => navigation.navigate('Play')}
+                      activeOpacity={0.82}
+                    >
+                      <Ionicons name="game-controller-outline" size={20} color="#42a5f5" />
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.snakeCardTitle}>Think you can top the board?</Text>
+                        <Text style={s.snakeCardSub}>Snake & Ping Pong · weekly prize up for grabs</Text>
+                      </View>
+                      <Text style={s.snakeCardArrow}>→</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </View>

@@ -154,16 +154,18 @@ export default function StampSection() {
     if (guess) { setDiscountType(guess.type); setDiscountValue(guess.value); }
     else { setDiscountType('NONE'); setDiscountValue(''); }
     setShowCalc(true);
-    if (!allServices) {
-      setCalcLoading(true);
-      try {
-        const res = await api.get('/services/all-services');
-        setAllServices(res.data.allServices || []);
-      } catch {
-        setAllServices([]);
-      } finally { setCalcLoading(false); }
-    }
-  }, [userData, allServices]);
+    // Refetch every time rather than caching — prices can change mid-shift
+    // (another admin editing Services while this tab stays mounted), and a
+    // stale price silently baked into a customer's total is worse than an
+    // extra request.
+    setCalcLoading(true);
+    try {
+      const res = await api.get('/services/all-services');
+      setAllServices(res.data.allServices || []);
+    } catch {
+      setAllServices(prev => prev || []);
+    } finally { setCalcLoading(false); }
+  }, [userData]);
 
   const toggleCalcService = (id) => {
     setCalcSelected(prev => {
