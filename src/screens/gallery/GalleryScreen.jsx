@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Image, TouchableOpacity,
   Modal, Dimensions, PanResponder, ActivityIndicator, ScrollView,
@@ -9,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
 import { BACKEND } from '../../config';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import GalleryFormModal from '../../components/GalleryFormModal';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -30,6 +32,7 @@ function FadeInItem({ index, style, children }) {
 export default function GalleryScreen({ navigation }) {
   const { T } = useTheme();
   const s = useMemo(() => makeStyles(T), [T]);
+  const { isAdmin } = useAuth();
   const headerAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(headerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
@@ -37,13 +40,22 @@ export default function GalleryScreen({ navigation }) {
   const [items,    setItems]    = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [lightbox, setLightbox] = useState(null); // { item, imgIdx }
+  const [showForm,   setShowForm]   = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
     api.get('/gallery/photos')
       .then(r => setItems(r.data.items || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const openAdd  = () => { setEditingItem(null); setShowForm(true); };
+  const openEdit = (item) => { setEditingItem(item); setShowForm(true); };
+  const onSaved  = () => { setShowForm(false); load(); };
 
   // Swipe gesture for lightbox
   const pan = useRef(null);
@@ -82,6 +94,11 @@ export default function GalleryScreen({ navigation }) {
               <Text style={s.multiDotText}>+{item.images.length}</Text>
             </View>
           )}
+          {isAdmin && (
+            <TouchableOpacity style={s.editDot} onPress={() => openEdit(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="pencil" size={12} color="#fff" />
+            </TouchableOpacity>
+          )}
         </TouchableOpacity>
       </FadeInItem>
     );
@@ -99,8 +116,18 @@ export default function GalleryScreen({ navigation }) {
             <Text style={s.backText}>← Back</Text>
           </TouchableOpacity>
         )}
-        <Text style={s.eyebrow}>THE WORK</Text>
-        <Text style={s.title}>Gallery</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.eyebrow}>THE WORK</Text>
+            <Text style={s.title}>Gallery</Text>
+          </View>
+          {isAdmin && (
+            <TouchableOpacity style={s.addPhotosBtn} onPress={openAdd} activeOpacity={0.8}>
+              <Ionicons name="add" size={16} color="#fff" />
+              <Text style={s.addPhotosBtnText}>ADD PHOTOS</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <View style={s.rule} />
         <Text style={s.sub}>Every cut tells a story.</Text>
       </Animated.View>
@@ -169,6 +196,15 @@ export default function GalleryScreen({ navigation }) {
           )}
         </View>
       </Modal>
+
+      {isAdmin && (
+        <GalleryFormModal
+          visible={showForm}
+          editing={editingItem}
+          onClose={() => setShowForm(false)}
+          onSaved={onSaved}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -187,6 +223,10 @@ function makeStyles(T) { return StyleSheet.create({
   thumb:    { width: IMG_SIZE, height: IMG_SIZE, backgroundColor: T.surface },
   multiDot: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
   multiDotText: { fontFamily: T.fontBodyBd, fontSize: 10, color: '#fff' },
+  editDot: { position: 'absolute', bottom: 8, right: 8, width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+
+  addPhotosBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: T.red, paddingHorizontal: 14, paddingVertical: 10 },
+  addPhotosBtnText: { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 1.5, color: '#fff' },
 
   empty:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyTitle: { fontFamily: T.fontHead, fontSize: 26, letterSpacing: 2, color: T.textDim, marginBottom: 8 },
