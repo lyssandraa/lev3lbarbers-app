@@ -12,6 +12,7 @@ import { BACKEND, WEBSITE_URL } from '../../config';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import PriceCountUp from '../../components/PriceCountUp';
+import ShopProductFormModal from '../../components/ShopProductFormModal';
 
 const { width: W } = Dimensions.get('window');
 const CARD_W = (W - 36) / 2; // 2 columns, 12px edge + 12px gap
@@ -46,7 +47,7 @@ function makeSkStyles(T) { return StyleSheet.create({
 }); }
 
 // ── Product card ─────────────────────────────────────────────────────────────
-function ProductCard({ product, index, cart, onAddToCart, onDecrease, onExpand, isLoggedIn }) {
+function ProductCard({ product, index, cart, onAddToCart, onDecrease, onExpand, isLoggedIn, isAdmin, onEdit }) {
   const { T } = useTheme();
   const p = useMemo(() => makePStyles(T), [T]);
   const anim = useRef(new Animated.Value(0)).current;
@@ -84,6 +85,15 @@ function ProductCard({ product, index, cart, onAddToCart, onDecrease, onExpand, 
             <View style={[p.stockBadge, { backgroundColor: T.gold + 'cc' }]}>
               <Text style={p.stockText}>ONLY {product.stock} LEFT</Text>
             </View>
+          )}
+          {isAdmin && (
+            <TouchableOpacity
+              style={p.editDot}
+              onPress={(e) => { e.stopPropagation?.(); onEdit(product); }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="pencil" size={12} color="#fff" />
+            </TouchableOpacity>
           )}
         </View>
 
@@ -137,6 +147,7 @@ function makePStyles(T) { return StyleSheet.create({
   imgPlaceholder: { backgroundColor: T.card, alignItems: 'center', justifyContent: 'center' },
   stockBadge: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(196,30,58,0.85)', paddingVertical: 3, alignItems: 'center' },
   stockText:  { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 2, color: '#fff' },
+  editDot:    { position: 'absolute', top: 6, left: 6, width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
   ghostNum:   { position: 'absolute', top: 152, right: 4, fontFamily: T.fontHead, fontSize: 36, color: T.redDim, lineHeight: 36, zIndex: 0 },
   body:       { padding: 10, paddingTop: 6 },
   name:       { fontFamily: T.fontHead, fontSize: 16, letterSpacing: 1, color: T.text, marginBottom: 2, lineHeight: 18 },
@@ -246,7 +257,7 @@ function makeGcStyles(T) { return StyleSheet.create({
 
 // ── Main screen ─────────────────────────────────────────────────────────────
 export default function ShopScreen() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { T } = useTheme();
   const s = useMemo(() => makeStyles(T), [T]);
   const isLoggedIn = !!user;
@@ -267,19 +278,30 @@ export default function ShopScreen() {
   const [customAmount,  setCustomAmount]  = useState('');
   const [lightbox,      setLightbox]      = useState(null);
   const [showCart,      setShowCart]      = useState(false);
+  const [showForm,        setShowForm]        = useState(false);
+  const [editingProduct,  setEditingProduct]  = useState(null);
+
+  // Admins see everything, including inactive products, so they can
+  // reactivate or fix something without a separate trip to the website.
+  const loadProducts = useCallback(() => {
+    api.get(isAdmin ? '/shop-products/all' : '/shop-products/public')
+      .then(r => setProducts(r.data.products || []))
+      .catch(() => {});
+  }, [isAdmin]);
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([
-      api.get('/shop-products/public'),
-      api.get('/gift-cards/denominations').catch(() => ({ data: { denominations: [] } })),
+      loadProducts(),
+      api.get('/gift-cards/denominations').then(r => setDenominations(r.data.denominations || [])).catch(() => {}),
     ])
-      .then(([prodRes, gcRes]) => {
-        setProducts(prodRes.data.products || []);
-        setDenominations(gcRes.data.denominations || []);
-      })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [loadProducts]);
+
+  const openAdd  = () => { setEditingProduct(null); setShowForm(true); };
+  const openEdit = (product) => { setEditingProduct(product); setShowForm(true); };
+  const onSaved  = () => { setShowForm(false); loadProducts(); };
 
   // Cart helpers
   const addToCart = (product) => {
@@ -338,6 +360,13 @@ export default function ShopScreen() {
         )}
       </View>
 
+      {isAdmin && (
+        <TouchableOpacity style={s.addProductBtn} onPress={openAdd} activeOpacity={0.8}>
+          <Ionicons name="add" size={16} color="#fff" />
+          <Text style={s.addProductBtnText}>ADD PRODUCT</Text>
+        </TouchableOpacity>
+      )}
+
       {/* ── Tabs (only when both categories exist) ── */}
       {!loading && showTabs && (
         <View style={s.tabRow}>
@@ -386,6 +415,8 @@ export default function ShopScreen() {
                     onDecrease={decreaseCart}
                     onExpand={setLightbox}
                     isLoggedIn={isLoggedIn}
+                    isAdmin={isAdmin}
+                    onEdit={openEdit}
                   />
                 ))}
               </View>
@@ -423,7 +454,7 @@ export default function ShopScreen() {
                 {!!lightbox.description && <Text style={s.lbDesc}>{lightbox.description}</Text>}
                 {lightbox.price !== null && lightbox.price !== undefined && (
                   lightbox.priceHidden && !isLoggedIn
-                    ? <Text style={p.memberOnly}>Members only</Text>
+                    ? <Text style={s.lbMemberOnly}>Members only</Text>
                     : <Text style={s.lbPrice}>£{Number(lightbox.price).toFixed(2)}</Text>
                 )}
                 {lightbox.category === 'online' && !lightbox.priceHidden && (
@@ -501,6 +532,14 @@ export default function ShopScreen() {
         </Pressable>
       </Modal>
 
+      {isAdmin && (
+        <ShopProductFormModal
+          visible={showForm}
+          editing={editingProduct}
+          onClose={() => setShowForm(false)}
+          onSaved={onSaved}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -517,6 +556,9 @@ function makeStyles(T) { return StyleSheet.create({
   cartBadgeNum: { fontFamily: T.fontBodyBd, fontSize: 10, color: '#fff' },
   cartBtnText:  { fontFamily: T.fontBodyBd, fontSize: 12, color: T.text, letterSpacing: 1 },
   cartTotal:    { fontFamily: T.fontBodyBd, fontSize: 11, color: T.gold, marginTop: 2 },
+
+  addProductBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: T.red, marginHorizontal: 12, marginTop: 12, paddingVertical: 12 },
+  addProductBtnText: { fontFamily: T.fontBodyBd, fontSize: 12, letterSpacing: 1.5, color: '#fff' },
 
   tabRow:    { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: T.textFaint, backgroundColor: T.surface },
   tabBtn:    { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
@@ -539,6 +581,7 @@ function makeStyles(T) { return StyleSheet.create({
   lbName:     { fontFamily: T.fontHead, fontSize: 26, letterSpacing: 2, color: T.text, marginBottom: 6 },
   lbDesc:     { fontFamily: T.fontBody, fontSize: 13, color: T.textDim, lineHeight: 20, marginBottom: 12 },
   lbPrice:    { fontFamily: T.fontHead, fontSize: 26, color: T.gold, marginBottom: 16 },
+  lbMemberOnly: { fontFamily: T.fontBodyBd, fontSize: 10, letterSpacing: 1, color: T.red, borderWidth: 1, borderColor: T.redDim, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start', marginBottom: 16 },
   lbClose:    { position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
   primaryBtn: { backgroundColor: T.red, paddingVertical: 15, alignItems: 'center' },
   primaryBtnText: { fontFamily: T.fontHead, fontSize: 15, letterSpacing: 3, color: '#fff' },
