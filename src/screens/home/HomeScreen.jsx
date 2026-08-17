@@ -12,6 +12,7 @@ import api from '../../api/api';
 import { resolveImageUrl } from '../../config';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import ShopStatusFormModal from '../../components/ShopStatusFormModal';
 
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -120,6 +121,7 @@ export default function HomeScreen({ navigation }) {
   // STAFF-only accounts don't have a Play tab (see AppNavigator's role-based
   // tab set) — hide the CTA that links to it rather than leave a dead tap.
   const canPlay = !isShopUser || isAdmin;
+  const [showStatusEdit, setShowStatusEdit] = useState(false);
 
   // Hero
   const [heroImages,  setHeroImages]  = useState([]);
@@ -197,23 +199,24 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   // ── Poll shop status every 10 s ─────────────────────────────────────────
-  useEffect(() => {
-    const fetch = () => {
-      api.get('/shop-status')
-        .then(r => {
-          const { isOpen, override, barbers: bs, waitTime, openingHours } = r.data;
-          setShopStatus({
-            isOpen:   override ? isOpen : computeIsOpen(openingHours),
-            barbers:  bs || [],
-            waitTime: waitTime || 0,
-          });
-        })
-        .catch(() => {});
-    };
-    fetch();
-    const id = setInterval(fetch, 10000);
-    return () => clearInterval(id);
+  const fetchShopStatus = useCallback(() => {
+    api.get('/shop-status')
+      .then(r => {
+        const { isOpen, override, barbers: bs, waitTime, openingHours } = r.data;
+        setShopStatus({
+          isOpen:   override ? isOpen : computeIsOpen(openingHours),
+          barbers:  bs || [],
+          waitTime: waitTime || 0,
+        });
+      })
+      .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetchShopStatus();
+    const id = setInterval(fetchShopStatus, 10000);
+    return () => clearInterval(id);
+  }, [fetchShopStatus]);
 
   // ── Chair glow pulse (staggered, mirroring website's pulseDelay) ─────────
   useEffect(() => {
@@ -459,7 +462,19 @@ export default function HomeScreen({ navigation }) {
 
             {/* Wait level panel */}
             <View style={s.panel}>
-              <Text style={s.panelLabel}>Waiting Level</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={s.panelLabel}>Waiting Level</Text>
+                {isShopUser && (
+                  <TouchableOpacity
+                    style={s.editStatusBtn}
+                    onPress={() => setShowStatusEdit(true)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="create-outline" size={13} color={T.textDim} />
+                    <Text style={s.editStatusBtnText}>EDIT STATUS</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
 
               {!isOpen ? (
                 <View>
@@ -557,6 +572,14 @@ export default function HomeScreen({ navigation }) {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      {isShopUser && (
+        <ShopStatusFormModal
+          visible={showStatusEdit}
+          onClose={() => setShowStatusEdit(false)}
+          onSaved={() => { setShowStatusEdit(false); fetchShopStatus(); }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -603,6 +626,8 @@ function makeStyles(T) { return StyleSheet.create({
   panelDivider: { height: 1, marginBottom: 40 },
 
   panelLabel:   { fontFamily: T.fontHead, fontSize: 22, letterSpacing: 3, color: T.textDim, marginBottom: 28 },
+  editStatusBtn:     { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 28 },
+  editStatusBtnText: { fontFamily: T.fontBodyBd, fontSize: 10, letterSpacing: 1.5, color: T.textDim },
 
   closedTitle:  { fontFamily: T.fontHead, fontSize: 26, letterSpacing: 2, color: T.textDim, lineHeight: 30 },
   closedSub:    { fontFamily: T.fontBodyBd, fontSize: 10, letterSpacing: 2, color: T.textFaint, textTransform: 'uppercase', marginTop: 8 },
