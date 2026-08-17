@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Modal, ScrollView, TextInput, ActivityIndicator,
-  Animated, Pressable,
+  Animated, Pressable, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import WhatsOnPostFormModal from '../../components/WhatsOnPostFormModal';
 
 const FILTERS = [
   { id: 'ALL',       label: 'ALL' },
@@ -129,23 +131,45 @@ function FadeInCard({ index, children }) {
 export default function WhatsOnScreen({ navigation }) {
   const { T } = useTheme();
   const s = useMemo(() => makeStyles(T), [T]);
+  const { isAdmin } = useAuth();
   const CAT_COLORS = useMemo(() => ({ ARTICLE: T.text, PROMOTION: T.red, NEWS: T.gold }), [T]);
   const [posts,   setPosts]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter,  setFilter]  = useState('ALL');
   const [search,  setSearch]  = useState('');
   const [reading, setReading] = useState(null);
+  const [showForm,  setShowForm]  = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
   const headerAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(headerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
   }, []);
 
-  useEffect(() => {
-    api.get('/whats-on/posts')
+  // Admins see drafts too (via /posts/all), so they can publish/finish a
+  // post without a separate trip through the admin panel.
+  const load = useCallback(() => {
+    setLoading(true);
+    api.get(isAdmin ? '/whats-on/posts/all' : '/whats-on/posts')
       .then(r => setPosts(r.data.posts || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [isAdmin]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const openAdd  = () => { setEditingPost(null); setShowForm(true); };
+  const openEdit = (post) => { setEditingPost(post); setShowForm(true); };
+  const onSaved  = () => { setShowForm(false); load(); };
+
+  const removePost = (post) => {
+    Alert.alert('Delete Post', `Remove "${post.title}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try { await api.delete(`/whats-on/posts/${post.id}`); load(); }
+        catch { Alert.alert('Error', 'Could not delete.'); }
+      }},
+    ]);
+  };
 
   const q        = search.trim().toLowerCase();
   const filtered = posts
@@ -169,7 +193,22 @@ export default function WhatsOnScreen({ navigation }) {
           </View>
           <Text style={s.cardTitle} numberOfLines={2}>{item.title}</Text>
           {!!item.excerpt && <Text style={s.cardExcerpt} numberOfLines={3}>{item.excerpt}</Text>}
-          <Text style={s.readMore}>Read more →</Text>
+          {isAdmin ? (
+            <View style={s.adminRow}>
+              {!item.published && (
+                <View style={s.draftBadge}><Text style={s.draftBadgeText}>DRAFT</Text></View>
+              )}
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity style={s.adminIconBtn} onPress={() => openEdit(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="pencil-outline" size={15} color={T.textDim} />
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.adminIconBtn, { borderColor: T.red }]} onPress={() => removePost(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="trash-outline" size={15} color={T.red} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <Text style={s.readMore}>Read more →</Text>
+          )}
         </TouchableOpacity>
       </FadeInCard>
     );
@@ -186,8 +225,18 @@ export default function WhatsOnScreen({ navigation }) {
             <Text style={{ fontFamily: T.fontBodyMd, fontSize: 13, color: T.textDim, letterSpacing: 1 }}>← Back</Text>
           </TouchableOpacity>
         )}
-        <Text style={s.eyebrow}>THE COMMUNITY</Text>
-        <Text style={s.pageTitle}>What's On</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.eyebrow}>THE COMMUNITY</Text>
+            <Text style={s.pageTitle}>What's On</Text>
+          </View>
+          {isAdmin && (
+            <TouchableOpacity style={s.newPostBtn} onPress={openAdd} activeOpacity={0.8}>
+              <Ionicons name="add" size={16} color="#fff" />
+              <Text style={s.newPostBtnText}>NEW POST</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <View style={s.rule} />
         <Text style={s.sub}>Articles · Promotions · Shop News</Text>
       </Animated.View>
@@ -241,6 +290,15 @@ export default function WhatsOnScreen({ navigation }) {
       )}
 
       {reading && <ArticleModal post={reading} onClose={() => setReading(null)} />}
+
+      {isAdmin && (
+        <WhatsOnPostFormModal
+          visible={showForm}
+          editing={editingPost}
+          onClose={() => setShowForm(false)}
+          onSaved={onSaved}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -254,6 +312,9 @@ function makeStyles(T) { return StyleSheet.create({
   pageTitle: { fontFamily: T.fontHead, fontSize: 52, letterSpacing: -0.5, lineHeight: 52, color: T.text },
   rule:      { width: 48, height: 2, backgroundColor: T.red, marginVertical: 12 },
   sub:       { fontFamily: T.fontBodyMd, fontSize: 13, color: T.textDim, letterSpacing: 1 },
+
+  newPostBtn:     { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: T.red, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 4 },
+  newPostBtnText: { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 1.5, color: '#fff' },
 
   filterRow:     { maxHeight: 48, borderBottomWidth: 1, borderBottomColor: T.border },
   filterContent: { paddingHorizontal: 16, alignItems: 'center', gap: 8 },
@@ -275,6 +336,11 @@ function makeStyles(T) { return StyleSheet.create({
   cardTitle:   { fontFamily: T.fontHead, fontSize: 20, letterSpacing: 1, color: T.text, marginBottom: 6, lineHeight: 22 },
   cardExcerpt: { fontFamily: T.fontBody, fontSize: 13, color: T.textDim, lineHeight: 19, marginBottom: 10 },
   readMore:    { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 1, color: T.red },
+
+  adminRow:      { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  adminIconBtn:  { width: 30, height: 30, borderWidth: 1, borderColor: T.border, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  draftBadge:    { borderWidth: 1, borderColor: T.textDim, paddingHorizontal: 6, paddingVertical: 2 },
+  draftBadgeText:{ fontFamily: T.fontBodyBd, fontSize: 8, letterSpacing: 1, color: T.textDim },
 
   empty:     { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyTitle:{ fontFamily: T.fontHead, fontSize: 26, letterSpacing: 2, color: T.textDim, marginBottom: 8 },
