@@ -105,7 +105,7 @@ export default function BookingsScreen() {
     setBarbers([]);
     try {
       const r = await api.get('/barber-profiles');
-      setBarbers(r.data || []);
+      setBarbers((r.data || []).filter(b => b.isBookable));
     } catch {
       // ignore
     } finally {
