@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Modal, ScrollView, TextInput, ActivityIndicator,
-  Animated, Pressable, Alert,
+  Animated, Pressable, Alert, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
+import { BACKEND } from '../../config';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import WhatsOnPostFormModal from '../../components/WhatsOnPostFormModal';
@@ -94,6 +95,10 @@ function ArticleModal({ post, onClose }) {
           </TouchableOpacity>
 
           <ScrollView style={ms.scroll} showsVerticalScrollIndicator={false}>
+            {!!post.imageUrl && (
+              <Image source={{ uri: `${BACKEND}${post.imageUrl}` }} style={ms.cover} resizeMode="cover" />
+            )}
+
             {/* Category badge */}
             <View style={[ms.catBadge, { backgroundColor: CAT_COLORS[cat] + '22', borderColor: CAT_COLORS[cat] }]}>
               <Text style={[ms.catLabel, { color: CAT_COLORS[cat] }]}>{CAT_LABELS[cat] || cat}</Text>
@@ -184,6 +189,9 @@ export default function WhatsOnScreen({ navigation }) {
     return (
       <FadeInCard index={index}>
         <TouchableOpacity style={s.card} onPress={() => setReading(item)} activeOpacity={0.82}>
+          {!!item.imageUrl && (
+            <Image source={{ uri: `${BACKEND}${item.imageUrl}` }} style={s.cardImg} resizeMode="cover" />
+          )}
           {item.pinned && <View style={s.featuredBar} />}
           <View style={s.cardTop}>
             <View style={[s.catChip, { borderColor: CAT_COLORS[cat] }]}>
@@ -328,6 +336,7 @@ function makeStyles(T) { return StyleSheet.create({
   searchInput: { flex: 1, fontFamily: T.fontBody, fontSize: 14, color: T.text },
 
   card:        { backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, marginBottom: 10, padding: 16, overflow: 'hidden' },
+  cardImg:     { width: '100%', height: 140, marginTop: -16, marginHorizontal: -16, marginBottom: 12 },
   featuredBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, backgroundColor: T.gold },
   cardTop:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   catChip:     { borderWidth: 1, borderRadius: 3, paddingHorizontal: 8, paddingVertical: 2 },
@@ -355,6 +364,7 @@ function makeMsStyles(T) { return StyleSheet.create({
   closeBtn: { position: 'absolute', right: 16, top: 16, width: 32, height: 32, borderRadius: 16, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   scroll:   { padding: 20, paddingTop: 44 },
 
+  cover:    { width: '100%', height: 200, borderRadius: 8, marginBottom: 16, backgroundColor: T.surface },
   catBadge: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 4, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 14 },
   catLabel: { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 2 },
   title:    { fontFamily: T.fontHead, fontSize: 30, letterSpacing: 1, color: T.text, lineHeight: 32, marginBottom: 6 },
