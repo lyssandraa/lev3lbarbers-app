@@ -38,8 +38,9 @@ function BarbersTab({ T, s }) {
   const [toggling,   setToggling]   = useState(null);
   const [showForm,   setShowForm]   = useState(false);
   const [editing,    setEditing]    = useState(null);
-  const [form,       setForm]       = useState({ displayName: '', bio: '', userId: '' });
+  const [form,       setForm]       = useState({ displayName: '', bio: '', userId: '', isBookable: true });
   const [saving,     setSaving]     = useState(false);
+  const [togglingBookable, setTogglingBookable] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,15 +66,24 @@ function BarbersTab({ T, s }) {
     finally { setToggling(null); }
   };
 
+  const toggleBookable = async (barber) => {
+    setTogglingBookable(barber.id);
+    try {
+      await api.put(`/barber-profiles/${barber.id}`, { isBookable: !barber.isBookable });
+      setBarbers(prev => prev.map(b => b.id === barber.id ? { ...b, isBookable: !b.isBookable } : b));
+    } catch { Alert.alert('Error', 'Could not update.'); }
+    finally { setTogglingBookable(null); }
+  };
+
   const openAdd = () => {
     setEditing(null);
-    setForm({ displayName: '', bio: '', userId: '' });
+    setForm({ displayName: '', bio: '', userId: '', isBookable: true });
     setShowForm(true);
   };
 
   const openEdit = (b) => {
     setEditing(b);
-    setForm({ displayName: b.displayName || '', bio: b.bio || '', userId: String(b.userId || '') });
+    setForm({ displayName: b.displayName || '', bio: b.bio || '', userId: String(b.userId || ''), isBookable: b.isBookable !== false });
     setShowForm(true);
   };
 
@@ -87,12 +97,14 @@ function BarbersTab({ T, s }) {
         await api.put(`/barber-profiles/${editing.id}`, {
           displayName: form.displayName,
           bio:         form.bio,
+          isBookable:  form.isBookable,
         });
       } else {
         await api.post('/barber-profiles', {
           displayName: form.displayName,
           bio:         form.bio,
           userId:      form.userId || undefined,
+          isBookable:  form.isBookable,
         });
       }
       setShowForm(false);
@@ -173,6 +185,19 @@ function BarbersTab({ T, s }) {
             </View>
 
             <View style={s.actionRow}>
+              <TouchableOpacity
+                style={[s.bookableChip, b.isBookable && s.bookableChipOn]}
+                onPress={() => toggleBookable(b)}
+                disabled={togglingBookable === b.id}
+              >
+                {togglingBookable === b.id
+                  ? <ActivityIndicator size="small" color={b.isBookable ? '#22c55e' : T.textDim} />
+                  : <Text style={[s.bookableChipText, b.isBookable && s.bookableChipTextOn]}>
+                      {b.isBookable ? 'Bookable' : 'Not bookable'}
+                    </Text>
+                }
+              </TouchableOpacity>
+              <View style={{ flex: 1 }} />
               <TouchableOpacity style={s.iconBtn} onPress={() => openEdit(b)}>
                 <Ionicons name="pencil-outline" size={15} color={T.textDim} />
               </TouchableOpacity>
@@ -217,6 +242,15 @@ function BarbersTab({ T, s }) {
                 placeholderTextColor={T.textFaint}
                 multiline
               />
+              <View style={s.bookableRow}>
+                <Text style={s.fieldLabel}>BOOKABLE ONLINE</Text>
+                <Switch
+                  value={!!form.isBookable}
+                  onValueChange={set('isBookable')}
+                  trackColor={{ true: T.red, false: T.border }}
+                  thumbColor="#fff"
+                />
+              </View>
               {!editing && staffUsers.length > 0 && (
                 <>
                   <Text style={s.fieldLabel}>LINK TO STAFF USER (optional)</Text>
@@ -386,8 +420,15 @@ function makeStyles(T) { return StyleSheet.create({
   toggleLabel: { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 1, color: T.textFaint, marginTop: 2, textTransform: 'uppercase' },
   toggleLabelOn: { color: '#22c55e' },
 
-  actionRow: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
+  actionRow: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'flex-end' },
   iconBtn: { width: 34, height: 34, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', borderRadius: 4 },
+
+  bookableChip: { paddingHorizontal: 10, height: 34, borderRadius: 4, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
+  bookableChipOn: { borderColor: '#22c55e66', backgroundColor: 'rgba(34,197,94,0.08)' },
+  bookableChipText: { fontFamily: T.fontBodyBd, fontSize: 10, letterSpacing: 0.5, color: T.textDim, textTransform: 'uppercase' },
+  bookableChipTextOn: { color: '#22c55e' },
+
+  bookableRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, marginTop: 4 },
 
   addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: T.red, paddingVertical: 13, marginBottom: 10 },
   addBtnText: { fontFamily: T.fontHead, fontSize: 14, letterSpacing: 3, color: '#fff' },
