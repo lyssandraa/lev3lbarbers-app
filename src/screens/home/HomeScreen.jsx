@@ -427,13 +427,17 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </Animated.View>
 
-        <TouchableOpacity
-          style={s.whatsOnLink}
-          onPress={() => navigation.navigate('WhatsOn', { filter: 'PROMOTION' })}
-          activeOpacity={0.7}
-        >
-          <Text style={s.whatsOnLinkText}>Fresh Drops  →</Text>
-        </TouchableOpacity>
+        <View style={s.whatsOnLinkWrap}>
+          <TouchableOpacity
+            style={s.whatsOnLink}
+            onPress={() => navigation.navigate('WhatsOn', { filter: 'PROMOTION' })}
+            activeOpacity={0.75}
+          >
+            <Text style={s.whatsOnLinkIcon}>🔥</Text>
+            <Text style={s.whatsOnLinkText}>Fresh Drops</Text>
+            <Text style={s.whatsOnLinkArrow}>→</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* ── Who's In Today ─────────────────────────────────────── */}
         <View
@@ -623,8 +627,15 @@ function makeStyles(T) { return StyleSheet.create({
   primaryBtnText: { fontFamily: T.fontBodyMd, fontSize: 11, letterSpacing: 2, color: '#fff', textTransform: 'uppercase' },
   ghostBtn:       { flex: 1, borderWidth: 1, borderColor: T.borderMd, paddingVertical: 14, alignItems: 'center' },
   ghostBtnText:   { fontFamily: T.fontBodyMd, fontSize: 11, letterSpacing: 2, color: T.text, textTransform: 'uppercase' },
-  whatsOnLink:      { alignItems: 'center', paddingBottom: 18, marginTop: -6 },
+  whatsOnLinkWrap:  { alignItems: 'center', paddingBottom: 20, marginTop: -6 },
+  whatsOnLink: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    borderWidth: 1.5, borderColor: T.red, borderRadius: 999,
+    backgroundColor: T.redDim, paddingVertical: 10, paddingHorizontal: 20,
+  },
+  whatsOnLinkIcon:  { fontSize: 13 },
   whatsOnLinkText:  { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 2, color: T.red, textTransform: 'uppercase' },
+  whatsOnLinkArrow: { fontSize: 13, color: T.red, fontFamily: T.fontBodyBd },
 
   // Availability section
   availSection: { paddingHorizontal: 24, paddingTop: 52, paddingBottom: 56, borderTopWidth: 1, borderTopColor: T.border },
