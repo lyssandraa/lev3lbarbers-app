@@ -20,6 +20,7 @@ const FILTERS = [
 ];
 
 const CAT_LABELS = { ARTICLE: 'ARTICLE', PROMOTION: 'PROMO', NEWS: 'NEWS' };
+const VALID_FILTERS = FILTERS.map(f => f.id);
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fmtDate = (s) => { const d = new Date(s); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
@@ -133,14 +134,18 @@ function FadeInCard({ index, children }) {
   );
 }
 
-export default function WhatsOnScreen({ navigation }) {
+export default function WhatsOnScreen({ navigation, route }) {
   const { T } = useTheme();
   const s = useMemo(() => makeStyles(T), [T]);
   const { isAdmin } = useAuth();
   const CAT_COLORS = useMemo(() => ({ ARTICLE: T.text, PROMOTION: T.red, NEWS: T.gold }), [T]);
   const [posts,   setPosts]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter,  setFilter]  = useState('ALL');
+  // Supports linking straight to a category, e.g. navigation.navigate('WhatsOn', { filter: 'PROMOTION' })
+  const [filter,  setFilter]  = useState(() => {
+    const fromParams = route?.params?.filter?.toUpperCase();
+    return VALID_FILTERS.includes(fromParams) ? fromParams : 'ALL';
+  });
   const [search,  setSearch]  = useState('');
   const [reading, setReading] = useState(null);
   const [showForm,  setShowForm]  = useState(false);

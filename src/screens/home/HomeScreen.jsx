@@ -429,7 +429,7 @@ export default function HomeScreen({ navigation }) {
 
         <TouchableOpacity
           style={s.whatsOnLink}
-          onPress={() => navigation.navigate('WhatsOn')}
+          onPress={() => navigation.navigate('WhatsOn', { filter: 'PROMOTION' })}
           activeOpacity={0.7}
         >
           <Text style={s.whatsOnLinkText}>Fresh Drops  →</Text>
