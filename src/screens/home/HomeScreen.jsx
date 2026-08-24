@@ -427,6 +427,14 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </Animated.View>
 
+        <TouchableOpacity
+          style={s.whatsOnLink}
+          onPress={() => navigation.navigate('WhatsOn')}
+          activeOpacity={0.7}
+        >
+          <Text style={s.whatsOnLinkText}>Fresh Drops  →</Text>
+        </TouchableOpacity>
+
         {/* ── Who's In Today ─────────────────────────────────────── */}
         <View
           style={s.availSection}
@@ -615,6 +623,8 @@ function makeStyles(T) { return StyleSheet.create({
   primaryBtnText: { fontFamily: T.fontBodyMd, fontSize: 11, letterSpacing: 2, color: '#fff', textTransform: 'uppercase' },
   ghostBtn:       { flex: 1, borderWidth: 1, borderColor: T.borderMd, paddingVertical: 14, alignItems: 'center' },
   ghostBtnText:   { fontFamily: T.fontBodyMd, fontSize: 11, letterSpacing: 2, color: T.text, textTransform: 'uppercase' },
+  whatsOnLink:      { alignItems: 'center', paddingBottom: 18, marginTop: -6 },
+  whatsOnLinkText:  { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 2, color: T.red, textTransform: 'uppercase' },
 
   // Availability section
   availSection: { paddingHorizontal: 24, paddingTop: 52, paddingBottom: 56, borderTopWidth: 1, borderTopColor: T.border },
