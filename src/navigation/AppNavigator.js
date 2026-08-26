@@ -93,7 +93,7 @@ function AppHeader({ isOpen, refreshShopStatus }) {
             style={h.statusEditBtn}
             onPress={() => setShowStatusEdit(true)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            aria-label="Edit shop status"
+            accessibilityLabel="Edit shop status"
           >
             <Ionicons name="create-outline" size={11} color={T.red} />
           </TouchableOpacity>
