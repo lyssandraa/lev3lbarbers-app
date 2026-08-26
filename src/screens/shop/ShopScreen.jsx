@@ -487,7 +487,10 @@ export default function ShopScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ flex: 1 }}>
+            {/* flexGrow:0/flexShrink:1, not flex:1 — cartSheet only has a
+                maxHeight cap (auto height otherwise), so a flex:1 child has
+                no definite space to fill and can collapse to zero height. */}
+            <ScrollView style={{ flexGrow: 0, flexShrink: 1 }}>
               {cart.length === 0 ? (
                 <View style={{ padding: 32, alignItems: 'center' }}>
                   <Text style={{ fontFamily: T.fontBodyMd, fontSize: 13, color: T.textDim }}>Your cart is empty.</Text>
