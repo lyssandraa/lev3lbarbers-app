@@ -154,7 +154,14 @@ function makeStyles(T) { return StyleSheet.create({
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: T.border },
   sheetTitle: { fontFamily: T.fontHead, fontSize: 18, letterSpacing: 2, color: T.text },
 
-  scroll: { flex: 1 },
+  // flexGrow:0 (not flex:1) — this ScrollView is reused both inside the
+  // bottom sheet (whose `sheet` parent only has a maxHeight cap, no
+  // definite height — a flexGrow child there has no space to fill and
+  // collapses to zero height, rendering the whole sheet blank) and
+  // full-page in the admin panel (a real flex:1 parent). flexShrink:1
+  // lets it size to content when there's room and still shrink/scroll
+  // correctly if content exceeds the available space in either context.
+  scroll: { flexGrow: 0, flexShrink: 1 },
   content: { padding: 16 },
   card: { backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, padding: 16, marginBottom: 12 },
   cardLabel: { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 3, color: T.red, textTransform: 'uppercase', marginBottom: 12 },

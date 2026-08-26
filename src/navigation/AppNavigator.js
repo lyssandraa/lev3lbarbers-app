@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable, AppState } from 'react-native';
 import { NavigationContainer, useNavigation, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -10,6 +10,7 @@ import { useShopMode } from '../context/ShopModeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../api/api';
 import BarberPole from '../components/BarberPole';
+import ShopStatusFormModal from '../components/ShopStatusFormModal';
 import usePushNotifications from '../hooks/usePushNotifications';
 
 // Auth screens
@@ -67,23 +68,37 @@ function computeOpenFromStatus(data) {
   return nowM >= oh * 60 + om && nowM < ch * 60 + cm;
 }
 
-function AppHeader({ isOpen }) {
+function AppHeader({ isOpen, refreshShopStatus }) {
   const navigation           = useNavigation();
   const { T, isDark, toggleTheme } = useTheme();
+  const { isShopUser } = useAuth();
   const h = useMemo(() => makeHStyles(T), [T]);
+  const [showStatusEdit, setShowStatusEdit] = useState(false);
 
   return (
     <View style={h.header}>
-      <Pressable
-        style={h.left}
-        onPress={() => navigation.navigate('MainApp', { screen: 'Contact' })}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <BarberPole isOpen={isOpen} />
-        <Text style={[h.status, { color: isOpen ? '#4caf50' : '#882222' }]}>
-          {isOpen ? 'OPEN' : 'CLOSED'}
-        </Text>
-      </Pressable>
+      <View style={h.left}>
+        <Pressable
+          onPress={() => navigation.navigate('MainApp', { screen: 'Contact' })}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <BarberPole isOpen={isOpen} />
+          <Text style={[h.status, { color: isOpen ? '#4caf50' : '#882222' }]}>
+            {isOpen ? 'OPEN' : 'CLOSED'}
+          </Text>
+        </Pressable>
+
+        {isShopUser && (
+          <TouchableOpacity
+            style={h.statusEditBtn}
+            onPress={() => setShowStatusEdit(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            aria-label="Edit shop status"
+          >
+            <Ionicons name="create-outline" size={11} color={T.red} />
+          </TouchableOpacity>
+        )}
+      </View>
 
       <TouchableOpacity
         style={h.brandWrap}
@@ -102,6 +117,14 @@ function AppHeader({ isOpen }) {
           color={T.text}
         />
       </TouchableOpacity>
+
+      {isShopUser && (
+        <ShopStatusFormModal
+          visible={showStatusEdit}
+          onClose={() => setShowStatusEdit(false)}
+          onSaved={() => { setShowStatusEdit(false); refreshShopStatus?.(); }}
+        />
+      )}
     </View>
   );
 }
@@ -120,6 +143,11 @@ function makeHStyles(T) {
     },
     left:   { flexDirection: 'column', alignItems: 'center', gap: 4, width: 44 },
     status: { fontFamily: T.fontBodyBd, fontSize: 8, letterSpacing: 1 },
+    statusEditBtn: {
+      width: 18, height: 18, borderRadius: 9,
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: T.redDim, borderWidth: 1, borderColor: T.red,
+    },
     brandWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
     brand:  { fontFamily: T.fontHead, fontSize: 31, letterSpacing: 0.5, color: T.text },
     right:  { width: 44, alignItems: 'flex-end', justifyContent: 'center' },
@@ -158,13 +186,13 @@ function MainTabs() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    const fetchStatus = () => {
-      api.get('/shop-status')
-        .then(r => setIsOpen(computeOpenFromStatus(r.data)))
-        .catch(() => {});
-    };
+  const fetchStatus = useCallback(() => {
+    return api.get('/shop-status')
+      .then(r => setIsOpen(computeOpenFromStatus(r.data)))
+      .catch(() => {});
+  }, []);
 
+  useEffect(() => {
     fetchStatus();
     const timer = setInterval(fetchStatus, 30_000);
 
@@ -176,14 +204,14 @@ function MainTabs() {
       clearInterval(timer);
       sub.remove();
     };
-  }, []);
+  }, [fetchStatus]);
 
   return (
     <View style={{ flex: 1, backgroundColor: T.bg }}>
       <WinnerModal />
       <IncomingInviteModal />
       <AppBanner />
-      <AppHeader isOpen={isOpen} />
+      <AppHeader isOpen={isOpen} refreshShopStatus={fetchStatus} />
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
