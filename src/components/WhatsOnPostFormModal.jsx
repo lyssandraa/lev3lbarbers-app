@@ -8,7 +8,24 @@ import api from '../api/api';
 import { useTheme } from '../context/ThemeContext';
 
 const CATS = ['ARTICLE', 'PROMOTION', 'NEWS'];
-const BLANK = { title: '', category: 'ARTICLE', authorName: '', excerpt: '', body: '', tags: '', pinned: false, published: true };
+const BLANK = { title: '', category: 'ARTICLE', authorName: '', excerpt: '', body: '', tags: '', pinned: false, published: true, expiresAt: '' };
+
+// No native date-picker dependency in the app yet (adding one needs a new
+// native build), so the expiry is a plain "YYYY-MM-DD HH:mm" text field —
+// matches the website's admin-only, occasional-use nature of this field.
+const toExpiryInput = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+const parseExpiryInput = (text) => {
+  const t = text.trim();
+  if (!t) return { ok: true, value: null };
+  const d = new Date(t.replace(' ', 'T'));
+  if (isNaN(d.getTime())) return { ok: false, value: null };
+  return { ok: true, value: d.toISOString() };
+};
 
 // Shared create/edit form for What's On posts — used by both the admin
 // panel's What's On section and the inline editor on the public-facing
@@ -32,6 +49,7 @@ export default function WhatsOnPostFormModal({ visible, editing, onClose, onSave
         tags:       Array.isArray(editing.tags) ? editing.tags.join(', ') : (editing.tags || ''),
         pinned:     !!editing.pinned,
         published:  editing.published !== false,
+        expiresAt:  toExpiryInput(editing.expiresAt),
       });
     } else {
       setForm(BLANK);
@@ -43,9 +61,21 @@ export default function WhatsOnPostFormModal({ visible, editing, onClose, onSave
   const save = async () => {
     if (!form.title.trim()) { Alert.alert('Required', 'Title is required.'); return; }
     if (!form.body.trim())  { Alert.alert('Required', 'Body is required.'); return; }
+    const expiry = parseExpiryInput(form.expiresAt);
+    if (!expiry.ok) { Alert.alert('Invalid date', 'Use the format YYYY-MM-DD HH:mm, e.g. 2026-09-01 18:00.'); return; }
+    // Publishing with an expiry date already in the past (e.g. reactivating
+    // an old promo without touching its stale date) would just get it
+    // auto-expired again on the next job run — clear it instead.
+    const expiresAtValue = (form.published && expiry.value && new Date(expiry.value) <= new Date())
+      ? null
+      : expiry.value;
     setSaving(true);
     try {
-      const body = { ...form, tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [] };
+      const body = {
+        ...form,
+        expiresAt: expiresAtValue,
+        tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+      };
       if (editing) await api.put(`/whats-on/posts/${editing.id}`, body);
       else         await api.post('/whats-on/posts', body);
       onSaved();
@@ -89,6 +119,10 @@ export default function WhatsOnPostFormModal({ visible, editing, onClose, onSave
             <Text style={s.fieldLabel}>TAGS (comma separated)</Text>
             <TextInput style={s.input} value={form.tags} onChangeText={set('tags')} placeholder="e.g. haircut, promo, tips" placeholderTextColor={T.textFaint} />
 
+            <Text style={s.fieldLabel}>EXPIRES (optional)</Text>
+            <TextInput style={s.input} value={form.expiresAt} onChangeText={set('expiresAt')} placeholder="YYYY-MM-DD HH:mm" placeholderTextColor={T.textFaint} autoCapitalize="none" />
+            <Text style={s.expiryHint}>Auto-hides after this time — stays saved so you can reactivate it later. Leave blank for no expiry.</Text>
+
             <View style={{ flexDirection: 'row', gap: 20, marginBottom: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Switch value={form.pinned} onValueChange={set('pinned')} trackColor={{ true: T.gold, false: T.border }} thumbColor={form.pinned ? '#fff' : T.textFaint} />
@@ -118,6 +152,7 @@ function makeStyles(T) { return StyleSheet.create({
   sheetTitle: { fontFamily: T.fontHead, fontSize: 18, letterSpacing: 2, color: T.text },
   fieldLabel: { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 2, color: T.textDim, textTransform: 'uppercase', marginBottom: 6, marginTop: 4 },
   input: { backgroundColor: T.card, borderWidth: 1, borderColor: T.border, color: T.text, fontFamily: T.fontBody, fontSize: 14, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 },
+  expiryHint: { fontFamily: T.fontBody, fontSize: 11, color: T.textFaint, marginTop: -6, marginBottom: 14, lineHeight: 15 },
   catBtn: { flex: 1, borderWidth: 1, borderColor: T.border, paddingVertical: 8, alignItems: 'center' },
   catBtnText: { fontFamily: T.fontBodyBd, fontSize: 10, letterSpacing: 1, color: T.textDim },
   switchLabel: { fontFamily: T.fontBodyMd, fontSize: 13, color: T.text },

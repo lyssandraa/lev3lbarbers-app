@@ -77,6 +77,12 @@ export default function WhatsOnSection() {
                 <View style={{ gap: 4 }}>
                   {p.pinned && <View style={s.badge}><Text style={s.badgeText}>PINNED</Text></View>}
                   {!p.published && <View style={[s.badge, { borderColor: T.textDim }]}><Text style={[s.badgeText, { color: T.textDim }]}>DRAFT</Text></View>}
+                  {p.expiresAt && new Date(p.expiresAt) <= new Date() && (
+                    <View style={[s.badge, { borderColor: T.red }]}><Text style={[s.badgeText, { color: T.red }]}>EXPIRED</Text></View>
+                  )}
+                  {p.expiresAt && new Date(p.expiresAt) > new Date() && (
+                    <View style={[s.badge, { borderColor: T.textDim }]}><Text style={[s.badgeText, { color: T.textDim }]}>EXP {fmtDate(p.expiresAt)}</Text></View>
+                  )}
                 </View>
               </View>
               {p.excerpt && <Text style={s.excerpt} numberOfLines={2}>{p.excerpt}</Text>}
