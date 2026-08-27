@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/api';
-import { BACKEND } from '../config';
+import { resolveImageUrl } from '../config';
 import { useTheme } from '../context/ThemeContext';
 import { pickImages, assetToFormFile } from '../utils/pickImage';
 
@@ -113,7 +113,7 @@ export default function GalleryFormModal({ visible, editing, onClose, onSaved })
             <View style={s.photoGrid}>
               {existingImages.map(img => (
                 <View key={img.id} style={s.photoThumbWrap}>
-                  <Image source={{ uri: `${BACKEND}${img.imageUrl}` }} style={s.photoThumb} resizeMode="cover" />
+                  <Image source={{ uri: resolveImageUrl(img.imageUrl) }} style={s.photoThumb} resizeMode="cover" />
                   {removingId === img.id ? (
                     <View style={s.photoRemoveBtn}><ActivityIndicator size="small" color="#fff" /></View>
                   ) : (

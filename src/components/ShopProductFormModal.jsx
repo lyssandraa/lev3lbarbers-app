@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/api';
-import { BACKEND } from '../config';
+import { resolveImageUrl } from '../config';
 import { useTheme } from '../context/ThemeContext';
 import { pickImages, assetToFormFile } from '../utils/pickImage';
 
@@ -78,7 +78,7 @@ export default function ShopProductFormModal({ visible, editing, onClose, onSave
     ]);
   };
 
-  const photoUri = image ? image.uri : (editing?.imageUrl ? `${BACKEND}${editing.imageUrl}` : null);
+  const photoUri = image ? image.uri : (editing?.imageUrl ? resolveImageUrl(editing.imageUrl) : null);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>

@@ -7,7 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
-import { BACKEND } from '../../config';
+import { resolveImageUrl } from '../../config';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import GalleryFormModal from '../../components/GalleryFormModal';
@@ -85,7 +85,7 @@ export default function GalleryScreen({ navigation }) {
       <FadeInItem index={index}>
         <TouchableOpacity onPress={() => setLightbox({ item, imgIdx: 0 })} activeOpacity={0.85}>
           <Image
-            source={{ uri: `${BACKEND}${thumb.imageUrl}` }}
+            source={{ uri: resolveImageUrl(thumb.imageUrl) }}
             style={s.thumb}
             resizeMode="cover"
           />
@@ -161,7 +161,7 @@ export default function GalleryScreen({ navigation }) {
           {lightbox && (
             <View style={s.lbInner} {...(pan.current?.panHandlers || {})}>
               <Image
-                source={{ uri: `${BACKEND}${lightbox.item.images[lightbox.imgIdx]?.imageUrl}` }}
+                source={{ uri: resolveImageUrl(lightbox.item.images[lightbox.imgIdx]?.imageUrl) }}
                 style={s.lbImg}
                 resizeMode="contain"
               />

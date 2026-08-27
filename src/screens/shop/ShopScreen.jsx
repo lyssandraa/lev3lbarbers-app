@@ -8,7 +8,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
-import { BACKEND, WEBSITE_URL } from '../../config';
+import { WEBSITE_URL, resolveImageUrl } from '../../config';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import PriceCountUp from '../../components/PriceCountUp';
@@ -70,7 +70,7 @@ function ProductCard({ product, index, cart, onAddToCart, onDecrease, onExpand, 
         {/* Image */}
         <View style={p.imgWrap}>
           {product.imageUrl ? (
-            <Image source={{ uri: `${BACKEND}${product.imageUrl}` }} style={p.img} resizeMode="cover" />
+            <Image source={{ uri: resolveImageUrl(product.imageUrl) }} style={p.img} resizeMode="cover" />
           ) : (
             <View style={[p.img, p.imgPlaceholder]}>
               <Ionicons name="image-outline" size={28} color={T.textFaint} />
@@ -443,7 +443,7 @@ export default function ShopScreen() {
           {lightbox && (
             <TouchableOpacity style={s.lbInner} activeOpacity={1}>
               {lightbox.imageUrl ? (
-                <Image source={{ uri: `${BACKEND}${lightbox.imageUrl}` }} style={s.lbImg} resizeMode="cover" />
+                <Image source={{ uri: resolveImageUrl(lightbox.imageUrl) }} style={s.lbImg} resizeMode="cover" />
               ) : (
                 <View style={[s.lbImg, { backgroundColor: T.card, alignItems: 'center', justifyContent: 'center' }]}>
                   <Ionicons name="image-outline" size={48} color={T.textFaint} />

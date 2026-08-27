@@ -7,7 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
-import { BACKEND } from '../../config';
+import { resolveImageUrl } from '../../config';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import WhatsOnPostFormModal from '../../components/WhatsOnPostFormModal';
@@ -97,7 +97,7 @@ function ArticleModal({ post, onClose }) {
 
           <ScrollView style={ms.scroll} showsVerticalScrollIndicator={false}>
             {!!post.imageUrl && (
-              <Image source={{ uri: `${BACKEND}${post.imageUrl}` }} style={ms.cover} resizeMode="cover" />
+              <Image source={{ uri: resolveImageUrl(post.imageUrl) }} style={ms.cover} resizeMode="cover" />
             )}
 
             {/* Category badge */}
@@ -195,7 +195,7 @@ export default function WhatsOnScreen({ navigation, route }) {
       <FadeInCard index={index}>
         <TouchableOpacity style={s.card} onPress={() => setReading(item)} activeOpacity={0.82}>
           {!!item.imageUrl && (
-            <Image source={{ uri: `${BACKEND}${item.imageUrl}` }} style={s.cardImg} resizeMode="cover" />
+            <Image source={{ uri: resolveImageUrl(item.imageUrl) }} style={s.cardImg} resizeMode="cover" />
           )}
           {item.pinned && <View style={s.featuredBar} />}
           <View style={s.cardTop}>

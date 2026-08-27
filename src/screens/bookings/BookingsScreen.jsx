@@ -7,7 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
-import { BACKEND } from '../../config';
+import { resolveImageUrl } from '../../config';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -296,7 +296,7 @@ export default function BookingsScreen() {
                 >
                   {b.imageUrl ? (
                     <Image
-                      source={{ uri: `${BACKEND}${b.imageUrl}` }}
+                      source={{ uri: resolveImageUrl(b.imageUrl) }}
                       style={s.barberThumb}
                       resizeMode="cover"
                     />
