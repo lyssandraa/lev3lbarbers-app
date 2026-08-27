@@ -165,9 +165,13 @@ export default function ContactScreen() {
 
   const address = info?.address || '76 Eastbank Street';
   const fullAddress = [address, info?.city, info?.postcode].filter(Boolean).join(', ');
-  const phone   = info?.phone    || '+44 7538 420 684';
-  const email   = info?.email    || 'lev3lbarbers@gmail.com';
-  const social  = info?.instagram || '@lev3l_barbers';
+  // No hardcoded fallbacks here (unlike address) — the website hides each
+  // of these entirely when admin clears them (info?.phone && ...), so the
+  // app needs to do the same instead of masking a cleared field with an
+  // old placeholder value that never goes away.
+  const phone  = info?.phone;
+  const email  = info?.email;
+  const social = info?.instagram;
 
   const openDirections = () =>
     Linking.openURL(
@@ -258,28 +262,31 @@ export default function ContactScreen() {
         <Text style={s.blockTitle}>REACH US</Text>
 
         <View style={s.infoList}>
-          <TouchableOpacity
-            style={s.infoRow}
-            activeOpacity={0.7}
-            onPress={() => Linking.openURL(`tel:${phone.replace(/\s/g, '')}`).catch(() => {})}
-          >
-            <Text style={s.infoKey}>PHONE</Text>
-            <Text style={[s.infoVal, s.infoLink]}>{phone}</Text>
-          </TouchableOpacity>
+          {(() => {
+            const rows = [
+              phone  && { key: 'phone',  label: 'PHONE',  value: phone,  link: true, onPress: () => Linking.openURL(`tel:${phone.replace(/\s/g, '')}`).catch(() => {}) },
+              email  && { key: 'email',  label: 'EMAIL',  value: email,  link: true, onPress: () => Linking.openURL(`mailto:${email}`).catch(() => {}) },
+              social && { key: 'social', label: 'SOCIAL', value: social },
+            ].filter(Boolean);
 
-          <TouchableOpacity
-            style={s.infoRow}
-            activeOpacity={0.7}
-            onPress={() => Linking.openURL(`mailto:${email}`).catch(() => {})}
-          >
-            <Text style={s.infoKey}>EMAIL</Text>
-            <Text style={[s.infoVal, s.infoLink]}>{email}</Text>
-          </TouchableOpacity>
-
-          <View style={[s.infoRow, { borderBottomWidth: 0 }]}>
-            <Text style={s.infoKey}>SOCIAL</Text>
-            <Text style={s.infoVal}>{social}</Text>
-          </View>
+            return rows.map((row, i) => {
+              const rowStyle = [s.infoRow, i === rows.length - 1 && { borderBottomWidth: 0 }];
+              if (row.onPress) {
+                return (
+                  <TouchableOpacity key={row.key} style={rowStyle} activeOpacity={0.7} onPress={row.onPress}>
+                    <Text style={s.infoKey}>{row.label}</Text>
+                    <Text style={[s.infoVal, row.link && s.infoLink]}>{row.value}</Text>
+                  </TouchableOpacity>
+                );
+              }
+              return (
+                <View key={row.key} style={rowStyle}>
+                  <Text style={s.infoKey}>{row.label}</Text>
+                  <Text style={s.infoVal}>{row.value}</Text>
+                </View>
+              );
+            });
+          })()}
         </View>
       </View>
 
