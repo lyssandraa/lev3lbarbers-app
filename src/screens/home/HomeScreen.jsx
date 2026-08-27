@@ -427,15 +427,22 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </Animated.View>
 
-        <View style={s.whatsOnLinkWrap}>
+        <View style={s.offerBtnWrap}>
           <TouchableOpacity
-            style={s.whatsOnLink}
+            style={s.offerBtn}
             onPress={() => navigation.navigate('WhatsOn', { filter: 'PROMOTION' })}
-            activeOpacity={0.75}
+            activeOpacity={0.85}
           >
-            <Text style={s.whatsOnLinkIcon}>🔥</Text>
-            <Text style={s.whatsOnLinkText}>Fresh Drops</Text>
-            <Text style={s.whatsOnLinkArrow}>→</Text>
+            {/* Ribbon-tail flourishes, rendered before the badge so its
+                opaque circle paints over their base and only the tips peek
+                out — same effect as the ::before/::after trick on web. */}
+            <View style={[s.ribbonTail, s.ribbonTailLeft]} />
+            <View style={[s.ribbonTail, s.ribbonTailRight]} />
+            <View style={s.offerBadge}>
+              <Ionicons name="pricetag" size={17} color={T.red} />
+            </View>
+            <Text style={s.offerBtnText}>Special Offers</Text>
+            <Text style={s.offerBtnArrow}>→</Text>
           </TouchableOpacity>
         </View>
 
@@ -627,15 +634,34 @@ function makeStyles(T) { return StyleSheet.create({
   primaryBtnText: { fontFamily: T.fontBodyMd, fontSize: 11, letterSpacing: 2, color: '#fff', textTransform: 'uppercase' },
   ghostBtn:       { flex: 1, borderWidth: 1, borderColor: T.borderMd, paddingVertical: 14, alignItems: 'center' },
   ghostBtnText:   { fontFamily: T.fontBodyMd, fontSize: 11, letterSpacing: 2, color: T.text, textTransform: 'uppercase' },
-  whatsOnLinkWrap:  { alignItems: 'center', paddingBottom: 20, marginTop: -6 },
-  whatsOnLink: {
-    flexDirection: 'row', alignItems: 'center', gap: 7,
-    borderWidth: 1.5, borderColor: T.red, borderRadius: 999,
-    backgroundColor: T.redDim, paddingVertical: 10, paddingHorizontal: 20,
+  offerBtnWrap: { alignItems: 'center', paddingBottom: 20, marginTop: -6 },
+  offerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    minHeight: 50, backgroundColor: T.red, borderRadius: 999,
+    paddingVertical: 14, paddingRight: 26, paddingLeft: 34,
+    shadowColor: T.red, shadowOpacity: 0.35, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 }, elevation: 6,
   },
-  whatsOnLinkIcon:  { fontSize: 13 },
-  whatsOnLinkText:  { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 2, color: T.red, textTransform: 'uppercase' },
-  whatsOnLinkArrow: { fontSize: 13, color: T.red, fontFamily: T.fontBodyBd },
+  offerBadge: {
+    position: 'absolute', left: -14, top: 4,
+    width: 42, height: 42, borderRadius: 21,
+    backgroundColor: T.bg, borderWidth: 2, borderColor: T.red,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 }, elevation: 4,
+  },
+  // Small ribbon-tail triangles via the border trick (RN has no clip-path) —
+  // sit behind the badge (rendered before it), only their tips visible.
+  ribbonTail: {
+    position: 'absolute', width: 0, height: 0,
+    borderLeftWidth: 5, borderRightWidth: 5, borderTopWidth: 10,
+    borderLeftColor: 'transparent', borderRightColor: 'transparent',
+    borderTopColor: '#8f1626',
+  },
+  ribbonTailLeft:  { top: 34, left: -10, transform: [{ rotate: '24deg' }] },
+  ribbonTailRight: { top: 34, left: 18,  transform: [{ rotate: '-24deg' }] },
+  offerBtnText:  { fontFamily: T.fontBodyBd, fontSize: 12, letterSpacing: 2, color: '#fff', textTransform: 'uppercase' },
+  offerBtnArrow: { fontSize: 14, color: '#fff', fontFamily: T.fontBodyBd },
 
   // Availability section
   availSection: { paddingHorizontal: 24, paddingTop: 52, paddingBottom: 56, borderTopWidth: 1, borderTopColor: T.border },
