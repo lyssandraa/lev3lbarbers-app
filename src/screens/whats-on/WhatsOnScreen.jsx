@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Modal, ScrollView, TextInput, ActivityIndicator,
-  Animated, Pressable, Alert, Image,
+  Animated, Pressable, Alert, Image, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,154 @@ import { resolveImageUrl } from '../../config';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import WhatsOnPostFormModal from '../../components/WhatsOnPostFormModal';
+
+const { width: SCREEN_W } = Dimensions.get('window');
+const CARD_IMG_H    = 140;
+const CARD_IMG_W    = SCREEN_W - 32;   // FlatList's 16px horizontal padding on each side
+const MODAL_COVER_H = 200;
+const MODAL_COVER_W = SCREEN_W - 40;   // sheet's 20px padding on each side
+
+/* Bolder/darker replacements for T.textDim/T.textFaint on specifically the
+   excerpt/date/body text here — matches the website's WhatsOn.jsx contrast
+   pass without touching the shared theme tokens used all over the rest of
+   the app. T.text differs exactly between the two theme objects, so it
+   doubles as a cheap light/dark check. */
+const strongDim   = (T) => T.text === '#1a1a1a' ? 'rgba(26,26,26,0.78)' : 'rgba(234,224,202,0.72)';
+const strongFaint = (T) => T.text === '#1a1a1a' ? 'rgba(26,26,26,0.62)' : 'rgba(234,224,202,0.55)';
+
+const URGENT_MS = 24 * 60 * 60 * 1000;
+
+/* Mirrors the website's countdown: coarse "3d 4h left" text normally, a
+   real ticking HH:MM:SS clock once inside the last 24h. */
+const formatCountdown = (ms, urgent) => {
+  const totalSeconds = Math.floor(ms / 1000);
+  if (urgent) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const sec = totalSeconds % 60;
+    return `${pad(h)}:${pad(m)}:${pad(sec)}`;
+  }
+  const mins  = Math.floor(ms / 60000);
+  const days  = Math.floor(mins / 1440);
+  const hours = Math.floor((mins % 1440) / 60);
+  const minutes = mins % 60;
+  if (days > 0)  return `${days}d ${hours}h left`;
+  if (hours > 0) return `${hours}h ${minutes}m left`;
+  return `${minutes}m left`;
+};
+
+function useCountdown(expiresAt) {
+  const [now, setNow] = useState(() => Date.now());
+  const remaining = expiresAt ? new Date(expiresAt).getTime() - now : null;
+  const urgent = remaining !== null && remaining > 0 && remaining < URGENT_MS;
+
+  useEffect(() => {
+    if (!expiresAt) return;
+    const id = setInterval(() => setNow(Date.now()), urgent ? 1000 : 30000);
+    return () => clearInterval(id);
+  }, [expiresAt, urgent]);
+
+  if (!expiresAt || remaining <= 0) return null;
+  return { text: formatCountdown(remaining, urgent), urgent };
+}
+
+/* Countdown badge — calm gold pill with an hourglass normally; once urgent,
+   a solid red pill that pulses (scale + shadow) with a shaking flame icon
+   and a live-ticking clock. RN has no cheap equivalent of the website's
+   crawling diagonal hazard-stripe background (that used an animated CSS
+   background-position, which isn't something React Native's style system
+   drives the same way), so the drama here comes from the pulse + shake +
+   live ticking digits instead. */
+function CountdownBadge({ countdown }) {
+  const { T } = useTheme();
+  const pulse = useRef(new Animated.Value(0)).current;
+  const shake = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!countdown?.urgent) return;
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 550, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 550, useNativeDriver: true }),
+      ])
+    );
+    const shakeLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shake, { toValue: 1,  duration: 90,  useNativeDriver: true }),
+        Animated.timing(shake, { toValue: -1, duration: 140, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: 1,  duration: 120, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: 0,  duration: 140, useNativeDriver: true }),
+        Animated.delay(300),
+      ])
+    );
+    pulseLoop.start(); shakeLoop.start();
+    return () => { pulseLoop.stop(); shakeLoop.stop(); pulse.setValue(0); shake.setValue(0); };
+  }, [countdown?.urgent]);
+
+  if (!countdown) return null;
+  const scale  = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] });
+  const rotate = shake.interpolate({ inputRange: [-1, 1], outputRange: ['-18deg', '18deg'] });
+
+  return (
+    <Animated.View
+      style={[
+        cs.countdown,
+        { backgroundColor: countdown.urgent ? T.red : T.goldDim, borderColor: countdown.urgent ? '#ff5a5a' : T.gold },
+        countdown.urgent && { transform: [{ scale }], shadowColor: T.red, shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
+      ]}
+    >
+      <Animated.Text style={[cs.countdownIcon, countdown.urgent && { transform: [{ rotate }] }]}>
+        {countdown.urgent ? '🔥' : '⏳'}
+      </Animated.Text>
+      <Text style={[cs.countdownText, { color: countdown.urgent ? '#fff' : T.text }]}>{countdown.text}</Text>
+    </Animated.View>
+  );
+}
+
+const cs = StyleSheet.create({
+  countdown: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    alignSelf: 'flex-start', borderWidth: 1, borderRadius: 4,
+    paddingHorizontal: 8, paddingVertical: 3, marginBottom: 8,
+  },
+  countdownIcon: { fontSize: 11 },
+  countdownText: { fontFamily: 'Montserrat_700Bold', fontSize: 11, letterSpacing: 0.4 },
+});
+
+/* Emulates the website's `object-position: center Y%` — RN's Image has no
+   equivalent, so a cover-fit crop always centers. Measures the image's
+   natural size once, computes the same scale/offset math CSS uses for
+   object-fit:cover + object-position, and positions an oversized Image
+   inside an overflow:hidden box to shift which part stays in frame. Falls
+   back to a plain centered cover image until the natural size is known. */
+function FocusedImage({ uri, focusY = 50, width, height, style }) {
+  const [natural, setNatural] = useState(null);
+
+  useEffect(() => {
+    setNatural(null);
+    if (!uri) return;
+    let cancelled = false;
+    Image.getSize(uri, (w, h) => { if (!cancelled) setNatural({ w, h }); }, () => {});
+    return () => { cancelled = true; };
+  }, [uri]);
+
+  if (!natural) {
+    return <Image source={{ uri }} style={[{ width, height }, style]} resizeMode="cover" />;
+  }
+
+  const scale = Math.max(width / natural.w, height / natural.h);
+  const dw = natural.w * scale;
+  const dh = natural.h * scale;
+  const top = (height - dh) * (focusY / 100);
+  const left = (width - dw) / 2;
+
+  return (
+    <View style={[{ width, height, overflow: 'hidden' }, style]}>
+      <Image source={{ uri }} style={{ width: dw, height: dh, position: 'absolute', top, left }} />
+    </View>
+  );
+}
 
 const FILTERS = [
   { id: 'ALL',       label: 'ALL' },
@@ -84,6 +232,7 @@ function ArticleModal({ post, onClose }) {
   const CAT_COLORS = useMemo(() => ({ ARTICLE: T.text, PROMOTION: T.red, NEWS: T.gold }), [T]);
   const blocks = parseBody(post.body);
   const cat    = post.category;
+  const countdown = useCountdown(post.expiresAt);
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={ms.backdrop} onPress={onClose}>
@@ -97,7 +246,13 @@ function ArticleModal({ post, onClose }) {
 
           <ScrollView style={ms.scroll} showsVerticalScrollIndicator={false}>
             {!!post.imageUrl && (
-              <Image source={{ uri: resolveImageUrl(post.imageUrl) }} style={ms.cover} resizeMode="cover" />
+              <FocusedImage
+                uri={resolveImageUrl(post.imageUrl)}
+                focusY={post.imageFocusY ?? 50}
+                width={MODAL_COVER_W}
+                height={MODAL_COVER_H}
+                style={ms.cover}
+              />
             )}
 
             {/* Category badge */}
@@ -107,6 +262,7 @@ function ArticleModal({ post, onClose }) {
 
             <Text style={ms.title}>{post.title}</Text>
             <Text style={ms.date}>{fmtDate(post.createdAt)}</Text>
+            <CountdownBadge countdown={countdown} />
             <View style={ms.divider} />
 
             {post.excerpt ? <Text style={ms.excerpt}>{post.excerpt}</Text> : null}
@@ -131,6 +287,56 @@ function FadeInCard({ index, children }) {
     <Animated.View style={{ opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
       {children}
     </Animated.View>
+  );
+}
+
+// Its own component (not an inline render function) specifically so
+// useCountdown's hooks are legal — FlatList's renderItem isn't a component
+// as far as React's Rules of Hooks are concerned, so a hook can't live
+// directly inside it.
+function PostCard({ item, index, isAdmin, T, CAT_COLORS, s, onOpen, onEdit, onRemove }) {
+  const cat = item.category;
+  const countdown = useCountdown(item.expiresAt);
+  return (
+    <FadeInCard index={index}>
+      <TouchableOpacity style={s.card} onPress={onOpen} activeOpacity={0.82}>
+        {!!item.imageUrl && (
+          <FocusedImage
+            uri={resolveImageUrl(item.imageUrl)}
+            focusY={item.imageFocusY ?? 50}
+            width={CARD_IMG_W}
+            height={CARD_IMG_H}
+            style={s.cardImg}
+          />
+        )}
+        {item.pinned && <View style={s.featuredBar} />}
+        <View style={s.cardTop}>
+          <View style={[s.catChip, { borderColor: CAT_COLORS[cat] }]}>
+            <Text style={[s.catText, { color: CAT_COLORS[cat] }]}>{CAT_LABELS[cat] || cat}</Text>
+          </View>
+          <Text style={s.dateText}>{fmtDate(item.createdAt)}</Text>
+        </View>
+        <Text style={s.cardTitle} numberOfLines={2}>{item.title}</Text>
+        <CountdownBadge countdown={countdown} />
+        {!!item.excerpt && <Text style={s.cardExcerpt} numberOfLines={3}>{item.excerpt}</Text>}
+        {isAdmin ? (
+          <View style={s.adminRow}>
+            {!item.published && (
+              <View style={s.draftBadge}><Text style={s.draftBadgeText}>DRAFT</Text></View>
+            )}
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity style={s.adminIconBtn} onPress={onEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="pencil-outline" size={15} color={T.textDim} />
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.adminIconBtn, { borderColor: T.red }]} onPress={onRemove} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="trash-outline" size={15} color={T.red} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Text style={s.readMore}>Read more →</Text>
+        )}
+      </TouchableOpacity>
+    </FadeInCard>
   );
 }
 
@@ -189,43 +395,14 @@ export default function WhatsOnScreen({ navigation, route }) {
   const pinned  = filtered.filter(p => p.pinned);
   const regular = filtered.filter(p => !p.pinned);
 
-  const renderCard = ({ item, index }) => {
-    const cat = item.category;
-    return (
-      <FadeInCard index={index}>
-        <TouchableOpacity style={s.card} onPress={() => setReading(item)} activeOpacity={0.82}>
-          {!!item.imageUrl && (
-            <Image source={{ uri: resolveImageUrl(item.imageUrl) }} style={s.cardImg} resizeMode="cover" />
-          )}
-          {item.pinned && <View style={s.featuredBar} />}
-          <View style={s.cardTop}>
-            <View style={[s.catChip, { borderColor: CAT_COLORS[cat] }]}>
-              <Text style={[s.catText, { color: CAT_COLORS[cat] }]}>{CAT_LABELS[cat] || cat}</Text>
-            </View>
-            <Text style={s.dateText}>{fmtDate(item.createdAt)}</Text>
-          </View>
-          <Text style={s.cardTitle} numberOfLines={2}>{item.title}</Text>
-          {!!item.excerpt && <Text style={s.cardExcerpt} numberOfLines={3}>{item.excerpt}</Text>}
-          {isAdmin ? (
-            <View style={s.adminRow}>
-              {!item.published && (
-                <View style={s.draftBadge}><Text style={s.draftBadgeText}>DRAFT</Text></View>
-              )}
-              <View style={{ flex: 1 }} />
-              <TouchableOpacity style={s.adminIconBtn} onPress={() => openEdit(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="pencil-outline" size={15} color={T.textDim} />
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.adminIconBtn, { borderColor: T.red }]} onPress={() => removePost(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="trash-outline" size={15} color={T.red} />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <Text style={s.readMore}>Read more →</Text>
-          )}
-        </TouchableOpacity>
-      </FadeInCard>
-    );
-  };
+  const renderCard = ({ item, index }) => (
+    <PostCard
+      item={item} index={index} isAdmin={isAdmin} T={T} CAT_COLORS={CAT_COLORS} s={s}
+      onOpen={() => setReading(item)}
+      onEdit={() => openEdit(item)}
+      onRemove={() => removePost(item)}
+    />
+  );
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
@@ -341,14 +518,14 @@ function makeStyles(T) { return StyleSheet.create({
   searchInput: { flex: 1, fontFamily: T.fontBody, fontSize: 14, color: T.text },
 
   card:        { backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, marginBottom: 10, padding: 16, overflow: 'hidden' },
-  cardImg:     { width: '100%', height: 140, marginTop: -16, marginHorizontal: -16, marginBottom: 12 },
+  cardImg:     { marginTop: -16, marginHorizontal: -16, marginBottom: 12 },
   featuredBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, backgroundColor: T.gold },
   cardTop:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   catChip:     { borderWidth: 1, borderRadius: 3, paddingHorizontal: 8, paddingVertical: 2 },
   catText:     { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 2 },
-  dateText:    { fontFamily: T.fontBody, fontSize: 11, color: T.textFaint },
+  dateText:    { fontFamily: T.fontBodyBd, fontSize: 11, color: strongFaint(T) },
   cardTitle:   { fontFamily: T.fontHead, fontSize: 20, letterSpacing: 1, color: T.text, marginBottom: 6, lineHeight: 22 },
-  cardExcerpt: { fontFamily: T.fontBody, fontSize: 13, color: T.textDim, lineHeight: 19, marginBottom: 10 },
+  cardExcerpt: { fontFamily: T.fontBodyMd, fontSize: 13, color: strongDim(T), lineHeight: 19, marginBottom: 10 },
   readMore:    { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 1, color: T.red },
 
   adminRow:      { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
@@ -369,18 +546,18 @@ function makeMsStyles(T) { return StyleSheet.create({
   closeBtn: { position: 'absolute', right: 16, top: 16, width: 32, height: 32, borderRadius: 16, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   scroll:   { padding: 20, paddingTop: 44 },
 
-  cover:    { width: '100%', height: 200, borderRadius: 8, marginBottom: 16, backgroundColor: T.surface },
+  cover:    { borderRadius: 8, marginBottom: 16, backgroundColor: T.surface },
   catBadge: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 4, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 14 },
   catLabel: { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 2 },
   title:    { fontFamily: T.fontHead, fontSize: 30, letterSpacing: 1, color: T.text, lineHeight: 32, marginBottom: 6 },
-  date:     { fontFamily: T.fontBody, fontSize: 11, color: T.textFaint, marginBottom: 14 },
+  date:     { fontFamily: T.fontBodyBd, fontSize: 11, color: strongFaint(T), marginBottom: 14 },
   divider:  { height: 1, backgroundColor: T.border, marginBottom: 16 },
-  excerpt:  { fontFamily: T.fontBodyMd, fontSize: 14, color: T.textDim, lineHeight: 22, marginBottom: 16, fontStyle: 'italic' },
+  excerpt:  { fontFamily: T.fontBodyBd, fontSize: 14, color: strongDim(T), lineHeight: 22, marginBottom: 16, fontStyle: 'italic' },
 }); }
 
 // ── Body block styles ──────────────────────────────────────────────────────
 function makeRsStyles(T) { return StyleSheet.create({
   bh:  { fontFamily: T.fontHead, fontSize: 20, letterSpacing: 1, color: T.text, marginTop: 18, marginBottom: 6 },
-  bp:  { fontFamily: T.fontBody, fontSize: 14, color: T.textDim, lineHeight: 22, marginBottom: 12 },
-  bul: { fontFamily: T.fontBody, fontSize: 14, color: T.textDim, lineHeight: 22, marginBottom: 4, paddingLeft: 8 },
+  bp:  { fontFamily: T.fontBodyMd, fontSize: 14, color: strongDim(T), lineHeight: 22, marginBottom: 12 },
+  bul: { fontFamily: T.fontBodyMd, fontSize: 14, color: strongDim(T), lineHeight: 22, marginBottom: 4, paddingLeft: 8 },
 }); }
