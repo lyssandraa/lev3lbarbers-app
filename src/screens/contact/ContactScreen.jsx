@@ -41,16 +41,6 @@ function TypeWriter({ text, active, delay = 0, speed = 26 }) {
   return <Text>{out || (active ? '' : text)}</Text>;
 }
 
-const DEFAULT_HOURS = {
-  0: { closed: true,  open: '10:00', close: '16:00' },
-  1: { closed: false, open: '09:00', close: '18:00' },
-  2: { closed: false, open: '09:00', close: '18:00' },
-  3: { closed: false, open: '09:00', close: '18:00' },
-  4: { closed: false, open: '09:00', close: '18:00' },
-  5: { closed: false, open: '09:00', close: '19:00' },
-  6: { closed: false, open: '09:00', close: '19:00' },
-};
-
 function fmtTime(t) {
   if (!t) return '';
   const [h, m] = t.split(':').map(Number);
@@ -138,7 +128,10 @@ export default function ContactScreen() {
   const s = useMemo(() => makeStyles(T), [T]);
   const scrollRef = useRef(null);
   const [info,        setInfo]        = useState(null);
-  const [hours,       setHours]       = useState(DEFAULT_HOURS);
+  // null (not a hardcoded guess) until the real schedule loads — a fallback
+  // that assumed Sunday was closed by default was exactly what made a
+  // properly-configured Sunday flash as "Closed" before the fetch resolved.
+  const [hours,       setHours]       = useState(null);
   const [hoursActive, setHoursActive] = useState(false);
   const todayIdx = new Date().getDay();
 
@@ -158,7 +151,7 @@ export default function ContactScreen() {
     ]).then(([infoRes, statusRes]) => {
       setInfo(infoRes.data);
       if (statusRes.data.openingHours) {
-        setHours({ ...DEFAULT_HOURS, ...statusRes.data.openingHours });
+        setHours(statusRes.data.openingHours);
       }
     }).catch(() => {});
   }, []);
@@ -230,7 +223,9 @@ export default function ContactScreen() {
         <Text style={s.blockTitle}>WHEN WE'RE HERE</Text>
 
         <View style={s.hoursList}>
-          {DAY_NAMES.map((day, i) => {
+          {!hours ? (
+            <Text style={s.hoursLoading}>Loading hours…</Text>
+          ) : DAY_NAMES.map((day, i) => {
             const dh       = hours[i];
             const isToday  = i === todayIdx;
             const timeText = dh?.closed
@@ -378,4 +373,5 @@ function makeStyles(T) { return StyleSheet.create({
   infoLink: { color: T.red },
 
   hoursList: { marginTop: 20 },
+  hoursLoading: { fontFamily: T.fontBodyMd, fontSize: 13, color: T.textFaint, paddingVertical: 12 },
 }); }

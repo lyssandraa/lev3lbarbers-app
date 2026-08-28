@@ -34,8 +34,12 @@ const OFFER_TEXT_SIZE = Math.round(OFFER_W * (16 / 190));
 const OFFER_SEAL_PATH = 'M100.0,4.0 L107.8,10.6 L117.3,6.7 L122.7,15.4 L132.9,14.7 L135.4,24.6 L145.3,27.1 L144.6,37.3 L153.3,42.7 L149.4,52.2 L156.0,60.0 L149.4,67.8 L153.3,77.3 L144.6,82.7 L145.3,92.9 L135.4,95.4 L132.9,105.3 L122.7,104.6 L117.3,113.3 L107.8,109.4 L100.0,116.0 L92.2,109.4 L82.7,113.3 L77.3,104.6 L67.1,105.3 L64.6,95.4 L54.7,92.9 L55.4,82.7 L46.7,77.3 L50.6,67.8 L44.0,60.0 L50.6,52.2 L46.7,42.7 L55.4,37.3 L54.7,27.1 L64.6,24.6 L67.1,14.7 L77.3,15.4 L82.7,6.7 L92.2,10.6 Z';
 
 // ── Opening hours fallback ────────────────────────────────────────────────
+// Only used if the server has no openingHours at all — every day gets the
+// same generic template. Singling out Sunday as closed here was making a
+// properly-configured Sunday flash (or, on a fetch error, show) as closed
+// even though the admin had set real hours for it.
 const DEFAULT_HOURS = {
-  0: { closed: true },
+  0: { open: '09:00', close: '18:00' },
   1: { open: '09:00', close: '18:00' },
   2: { open: '09:00', close: '18:00' },
   3: { open: '09:00', close: '18:00' },
