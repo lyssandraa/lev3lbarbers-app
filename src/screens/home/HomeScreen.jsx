@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Defs, RadialGradient, Stop, Ellipse } from 'react-native-svg';
+import Svg, { Defs, RadialGradient, LinearGradient as SvgLinearGradient, Stop, Ellipse, Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
 import { resolveImageUrl } from '../../config';
@@ -16,11 +16,22 @@ import ShopStatusFormModal from '../../components/ShopStatusFormModal';
 
 
 const { width: W, height: H } = Dimensions.get('window');
-const EASE_OUT = Easing.bezier(0.22, 1, 0.36, 1);
+const EASE_OUT    = Easing.bezier(0.22, 1, 0.36, 1);
+const EASE_IN_OUT = Easing.bezier(0.42, 0, 0.58, 1);
 const HERO_H   = Math.min(Math.round(H * 0.58), 540);
 
 const CHAIR_IMG  = require('../../../assets/barberChair.png');
 const CHAIR_W    = Math.min(Math.floor((W - 48 - 36) / 2), 120);
+
+// Special Offers badge — mirrors the website's scalloped-seal + ribbon SVG
+// (src/pages/Home.jsx) at the same 200/120 aspect ratio.
+const OFFER_CREAM    = '#f4f0e8';
+const OFFER_W        = Math.min(190, W * 0.5);
+const OFFER_H        = OFFER_W * 0.6;
+const OFFER_GLOW_W   = OFFER_W * 0.64;
+const OFFER_GLOW_H   = OFFER_H * 1.07;
+const OFFER_TEXT_SIZE = Math.round(OFFER_W * (16 / 190));
+const OFFER_SEAL_PATH = 'M100.0,4.0 L107.8,10.6 L117.3,6.7 L122.7,15.4 L132.9,14.7 L135.4,24.6 L145.3,27.1 L144.6,37.3 L153.3,42.7 L149.4,52.2 L156.0,60.0 L149.4,67.8 L153.3,77.3 L144.6,82.7 L145.3,92.9 L135.4,95.4 L132.9,105.3 L122.7,104.6 L117.3,113.3 L107.8,109.4 L100.0,116.0 L92.2,109.4 L82.7,113.3 L77.3,104.6 L67.1,105.3 L64.6,95.4 L54.7,92.9 L55.4,82.7 L46.7,77.3 L50.6,67.8 L44.0,60.0 L50.6,52.2 L46.7,42.7 L55.4,37.3 L54.7,27.1 L64.6,24.6 L67.1,14.7 L77.3,15.4 L82.7,6.7 L92.2,10.6 Z';
 
 // ── Opening hours fallback ────────────────────────────────────────────────
 const DEFAULT_HOURS = {
@@ -144,6 +155,12 @@ export default function HomeScreen({ navigation }) {
   const glow1 = useRef(new Animated.Value(0.4)).current;
   const glow2 = useRef(new Animated.Value(0.4)).current;
 
+  // Special Offers badge pulse — a single driver value for both the badge's
+  // own scale AND its glow layer's opacity/scale, so they're synced by
+  // construction (not two independently-timed animations that can drift,
+  // which is what actually went wrong on the website version of this).
+  const offerPulse = useRef(new Animated.Value(0)).current;
+
   // Bar fill
   const barAnim    = useRef(new Animated.Value(0)).current;
   const [barTrackW, setBarTrackW] = useState(0);
@@ -234,6 +251,20 @@ export default function HomeScreen({ navigation }) {
     });
     return () => timers.forEach(clearTimeout);
   }, []);
+
+  // ── Special Offers badge pulse (native-driven, immune to JS re-renders) ──
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(offerPulse, { toValue: 1, duration: 1300, easing: EASE_IN_OUT, useNativeDriver: true }),
+        Animated.timing(offerPulse, { toValue: 0, duration: 1300, easing: EASE_IN_OUT, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  const offerBadgeScale = offerPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] });
+  const offerGlowScale  = offerPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.16] });
+  const offerGlowOpacity = offerPulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.85] });
 
   // ── Derived availability state ───────────────────────────────────────────
   const { isOpen, barbers: activeBarbers, waitTime } = shopStatus;
@@ -429,20 +460,54 @@ export default function HomeScreen({ navigation }) {
 
         <View style={s.offerBtnWrap}>
           <TouchableOpacity
-            style={s.offerBtn}
+            style={s.offerBtnTouchable}
             onPress={() => navigation.navigate('WhatsOn', { filter: 'PROMOTION' })}
             activeOpacity={0.85}
           >
-            {/* Ribbon-tail flourishes, rendered before the badge so its
-                opaque circle paints over their base and only the tips peek
-                out — same effect as the ::before/::after trick on web. */}
-            <View style={[s.ribbonTail, s.ribbonTailLeft]} />
-            <View style={[s.ribbonTail, s.ribbonTailRight]} />
-            <View style={s.offerBadge}>
-              <Ionicons name="pricetag" size={17} color={T.red} />
-            </View>
-            <Text style={s.offerBtnText}>Special Offers</Text>
-            <Text style={s.offerBtnArrow}>→</Text>
+            <Animated.View
+              pointerEvents="none"
+              style={[s.offerGlow, { opacity: offerGlowOpacity, transform: [{ scale: offerGlowScale }] }]}
+            >
+              <Svg width={OFFER_GLOW_W} height={OFFER_GLOW_H}>
+                <Defs>
+                  <RadialGradient id="offerGlow" cx="50%" cy="50%" r="60%">
+                    <Stop offset="0%"  stopColor={T.red} stopOpacity="0.55" />
+                    <Stop offset="45%" stopColor={T.red} stopOpacity="0.16" />
+                    <Stop offset="72%" stopColor={T.red} stopOpacity="0" />
+                  </RadialGradient>
+                </Defs>
+                <Ellipse
+                  cx={OFFER_GLOW_W / 2} cy={OFFER_GLOW_H / 2}
+                  rx={OFFER_GLOW_W / 2} ry={OFFER_GLOW_H / 2}
+                  fill="url(#offerGlow)"
+                />
+              </Svg>
+            </Animated.View>
+
+            <Animated.View style={{ width: OFFER_W, height: OFFER_H, transform: [{ scale: offerBadgeScale }] }}>
+              <Svg width={OFFER_W} height={OFFER_H} viewBox="0 0 200 120">
+                <Defs>
+                  <SvgLinearGradient id="offerRibbonGradient" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0%" stopColor="#e14f68" />
+                    <Stop offset="55%" stopColor={T.red} />
+                    <Stop offset="100%" stopColor="#8f1626" />
+                  </SvgLinearGradient>
+                </Defs>
+                <Path d="M0,44 L56,44 L56,76 L0,76 L14,60 Z" fill="url(#offerRibbonGradient)" />
+                <Path d="M144,44 L200,44 L186,60 L200,76 L144,76 Z" fill="url(#offerRibbonGradient)" />
+                <Path
+                  d={OFFER_SEAL_PATH}
+                  fill={OFFER_CREAM}
+                  stroke={T.red}
+                  strokeWidth={2.5}
+                  strokeLinejoin="round"
+                />
+              </Svg>
+              <View style={s.offerLabel} pointerEvents="none">
+                <Text style={s.offerText}>SPECIAL</Text>
+                <Text style={s.offerText}>OFFERS</Text>
+              </View>
+            </Animated.View>
           </TouchableOpacity>
         </View>
 
@@ -635,33 +700,20 @@ function makeStyles(T) { return StyleSheet.create({
   ghostBtn:       { flex: 1, borderWidth: 1, borderColor: T.borderMd, paddingVertical: 14, alignItems: 'center' },
   ghostBtnText:   { fontFamily: T.fontBodyMd, fontSize: 11, letterSpacing: 2, color: T.text, textTransform: 'uppercase' },
   offerBtnWrap: { alignItems: 'center', paddingBottom: 20, marginTop: -6 },
-  offerBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    minHeight: 50, backgroundColor: T.red, borderRadius: 999,
-    paddingVertical: 14, paddingRight: 26, paddingLeft: 34,
-    shadowColor: T.red, shadowOpacity: 0.35, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 }, elevation: 6,
+  offerBtnTouchable: { width: OFFER_W, height: OFFER_H },
+  offerGlow: {
+    position: 'absolute',
+    left: (OFFER_W - OFFER_GLOW_W) / 2,
+    top:  (OFFER_H - OFFER_GLOW_H) / 2,
   },
-  offerBadge: {
-    position: 'absolute', left: -14, top: 4,
-    width: 42, height: 42, borderRadius: 21,
-    backgroundColor: T.bg, borderWidth: 2, borderColor: T.red,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 }, elevation: 4,
+  offerLabel: {
+    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center', gap: 2,
   },
-  // Small ribbon-tail triangles via the border trick (RN has no clip-path) —
-  // sit behind the badge (rendered before it), only their tips visible.
-  ribbonTail: {
-    position: 'absolute', width: 0, height: 0,
-    borderLeftWidth: 5, borderRightWidth: 5, borderTopWidth: 10,
-    borderLeftColor: 'transparent', borderRightColor: 'transparent',
-    borderTopColor: '#8f1626',
+  offerText: {
+    fontFamily: T.fontBodyBd, fontSize: OFFER_TEXT_SIZE, letterSpacing: 0.5,
+    color: T.red, lineHeight: OFFER_TEXT_SIZE * 1.15,
   },
-  ribbonTailLeft:  { top: 34, left: -10, transform: [{ rotate: '24deg' }] },
-  ribbonTailRight: { top: 34, left: 18,  transform: [{ rotate: '-24deg' }] },
-  offerBtnText:  { fontFamily: T.fontBodyBd, fontSize: 12, letterSpacing: 2, color: '#fff', textTransform: 'uppercase' },
-  offerBtnArrow: { fontSize: 14, color: '#fff', fontFamily: T.fontBodyBd },
 
   // Availability section
   availSection: { paddingHorizontal: 24, paddingTop: 52, paddingBottom: 56, borderTopWidth: 1, borderTopColor: T.border },
