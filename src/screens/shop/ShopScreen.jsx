@@ -280,6 +280,8 @@ export default function ShopScreen() {
   const [showCart,      setShowCart]      = useState(false);
   const [showForm,        setShowForm]        = useState(false);
   const [editingProduct,  setEditingProduct]  = useState(null);
+  const [productsY,  setProductsY]  = useState(0);
+  const [giftCardsY, setGiftCardsY] = useState(0);
 
   // Admins see everything, including inactive products, so they can
   // reactivate or fix something without a separate trip to the website.
@@ -338,6 +340,12 @@ export default function ShopScreen() {
   const showTabs = online.length > 0 && inShop.length > 0;
   const activeList = showTabs ? (tab === 'online' ? online : inShop) : (online.length > 0 ? online : inShop);
   const isEmpty = products.length === 0 && denominations.length === 0;
+  const hasProducts  = products.length > 0;
+  const hasGiftCards = denominations.length > 0;
+  // Only worth showing once there's actually more than one section to jump
+  // between — with just one, there's nothing to navigate to.
+  const showQuickNav = hasProducts && hasGiftCards;
+  const scrollToY = (y) => scrollRef.current?.scrollTo({ y: Math.max(y - 12, 0), animated: true });
 
   return (
     <SafeAreaView style={s.safe} edges={[]}>
@@ -365,6 +373,24 @@ export default function ShopScreen() {
           <Ionicons name="add" size={16} color="#fff" />
           <Text style={s.addProductBtnText}>ADD PRODUCT</Text>
         </TouchableOpacity>
+      )}
+
+      {/* ── Quick-nav — gift cards sit below the products grid, which can run
+          long, so this jumps straight there instead of relying on the
+          customer scrolling past everything to discover it. Placed as a
+          persistent row rather than the website's scroll-position-tracking
+          sticky bar — RN's ScrollView has no native sticky-within-content
+          behavior, and a fixed row above the ScrollView achieves the same
+          "always reachable" goal more simply. ── */}
+      {!loading && showQuickNav && (
+        <View style={s.quickNav}>
+          <TouchableOpacity style={s.quickNavBtn} onPress={() => scrollToY(productsY)} activeOpacity={0.7}>
+            <Text style={s.quickNavBtnText}>PRODUCTS</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.quickNavBtn} onPress={() => scrollToY(giftCardsY)} activeOpacity={0.7}>
+            <Text style={s.quickNavBtnText}>GIFT CARDS</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* ── Tabs (only when both categories exist) ── */}
@@ -404,7 +430,7 @@ export default function ShopScreen() {
         ) : (
           <>
             {activeList.length > 0 && (
-              <View style={s.grid}>
+              <View style={s.grid} onLayout={e => setProductsY(e.nativeEvent.layout.y)}>
                 {activeList.map((product, i) => (
                   <ProductCard
                     key={product.id}
@@ -423,13 +449,15 @@ export default function ShopScreen() {
             )}
 
             {denominations.length > 0 && (
-              <GiftCardSection
-                denominations={denominations}
-                cart={cart}
-                onAddGiftCard={addGiftCardToCart}
-                customAmount={customAmount}
-                setCustomAmount={setCustomAmount}
-              />
+              <View onLayout={e => setGiftCardsY(e.nativeEvent.layout.y)}>
+                <GiftCardSection
+                  denominations={denominations}
+                  cart={cart}
+                  onAddGiftCard={addGiftCardToCart}
+                  customAmount={customAmount}
+                  setCustomAmount={setCustomAmount}
+                />
+              </View>
             )}
           </>
         )}
@@ -562,6 +590,10 @@ function makeStyles(T) { return StyleSheet.create({
 
   addProductBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: T.red, marginHorizontal: 12, marginTop: 12, paddingVertical: 12 },
   addProductBtnText: { fontFamily: T.fontBodyBd, fontSize: 12, letterSpacing: 1.5, color: '#fff' },
+
+  quickNav:    { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 12 },
+  quickNavBtn: { flex: 1, borderWidth: 1, borderColor: T.textFaint, paddingVertical: 9, alignItems: 'center' },
+  quickNavBtnText: { fontFamily: T.fontHead, fontSize: 12, letterSpacing: 2, color: T.text },
 
   tabRow:    { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: T.textFaint, backgroundColor: T.surface },
   tabBtn:    { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
