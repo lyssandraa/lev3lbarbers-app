@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  View, Text, StyleSheet, FlatList, Image, TouchableOpacity,
-  Modal, ScrollView, ActivityIndicator, TextInput,
+  View, Text, StyleSheet, Image, TouchableOpacity,
+  Modal, ScrollView, TextInput,
   Dimensions, Animated, Linking, Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

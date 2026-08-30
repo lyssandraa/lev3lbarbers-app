@@ -28,15 +28,23 @@ function TypeWriter({ text, active, delay = 0, speed = 26 }) {
   useEffect(() => {
     if (!active || !text) return;
     let i = 0;
+    // `iv` has to live outside the setTimeout callback — a callback's
+    // return value is just discarded, it isn't effect cleanup. Without
+    // this, clearTimeout(start) below only cancels the timeout if it
+    // hasn't fired yet; once it has and `iv` is ticking, there's no way to
+    // stop it, so it keeps calling setOut after `active` goes false or the
+    // component unmounts. Contact's opening-hours rows retrigger this via
+    // useFocusEffect on every tab focus, so repeated leaked intervals here
+    // was a real, easily-hit leak, not just a theoretical one.
+    let iv = null;
     const start = setTimeout(() => {
-      const iv = setInterval(() => {
+      iv = setInterval(() => {
         i++;
         setOut(text.slice(0, i));
         if (i >= text.length) clearInterval(iv);
       }, speed);
-      return () => clearInterval(iv);
     }, delay);
-    return () => clearTimeout(start);
+    return () => { clearTimeout(start); clearInterval(iv); };
   }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
   return <Text>{out || (active ? '' : text)}</Text>;
 }
