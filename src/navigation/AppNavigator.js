@@ -79,6 +79,7 @@ function AppHeader({ isOpen, refreshShopStatus }) {
     <View style={h.header}>
       <View style={h.left}>
         <Pressable
+          style={h.poleWrap}
           onPress={() => navigation.navigate('MainApp', { screen: 'Contact' })}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
@@ -142,7 +143,13 @@ function makeHStyles(T) {
       backgroundColor: T.bg,
     },
     left:   { flexDirection: 'column', alignItems: 'center', gap: 4, width: 44 },
-    status: { fontFamily: T.fontBodyBd, fontSize: 8, letterSpacing: 1 },
+    // Pressable has no alignItems of its own, which defaults to RN's
+    // 'stretch' — a fixed-width child (the pole) then sits at the stretch
+    // axis's start (left) instead of centered, and the Text stretches to
+    // fill the full width with its default left-aligned content. That's
+    // why the pole and "CLOSED"/"OPEN" label didn't share a center line.
+    poleWrap: { alignItems: 'center' },
+    status: { fontFamily: T.fontBodyBd, fontSize: 8, letterSpacing: 1, textAlign: 'center' },
     statusEditBtn: {
       width: 18, height: 18, borderRadius: 9,
       alignItems: 'center', justifyContent: 'center',
