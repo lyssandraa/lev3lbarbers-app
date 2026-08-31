@@ -24,7 +24,13 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     try {
       await login(email.trim().toLowerCase(), password);
-      navigation.goBack();
+      // Not goBack() — Login can be reached via StaffSwitch's "use email
+      // instead" link, so the screen directly below it in the stack isn't
+      // always the app; it can be StaffSwitch itself, leaving the user
+      // dumped back on the switch screen after a successful login instead
+      // of actually entering the app. Navigating to 'MainApp' by name pops
+      // back to it regardless of how deep the stack got.
+      navigation.navigate('MainApp');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid credentials.');
     } finally {

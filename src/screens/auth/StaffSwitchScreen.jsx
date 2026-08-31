@@ -54,7 +54,13 @@ export default function StaffSwitchScreen({ navigation }) {
       const res = await api.post('/auth/pin-login', { userId: barber.userId, pin: fullPin });
       await loginWithToken(res.data.token);
       if (navigation.canGoBack()) {
-        navigation.goBack();
+        // Not goBack() — StaffSwitch can be reached via Login's "quick
+        // switch with PIN" link, so the screen directly below it isn't
+        // always the app; it can be Login itself, leaving the user dumped
+        // back on the login screen after a successful PIN login. Navigate
+        // to 'MainApp' by name instead, which pops back to it regardless
+        // of how deep the stack got.
+        navigation.navigate('MainApp');
       } else {
         // Nested as the "Switch Barber" tab: jump back to Home. Mounted as
         // the root Shop Mode kiosk screen (no parent, nothing to go back

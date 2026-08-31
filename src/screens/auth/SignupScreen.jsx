@@ -28,7 +28,11 @@ export default function SignupScreen({ navigation }) {
     setLoading(true);
     try {
       await register(name.trim(), email.trim().toLowerCase(), password, referralCode.trim() || undefined);
-      navigation.goBack();
+      // Not goBack() — Signup is reachable via StaffSwitch → Login → Signup,
+      // so the screen directly below it isn't always the app. Navigate to
+      // 'MainApp' by name instead, which pops back to it regardless of how
+      // deep the stack got. See the same fix in LoginScreen/StaffSwitchScreen.
+      navigation.navigate('MainApp');
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong.');
     } finally {
