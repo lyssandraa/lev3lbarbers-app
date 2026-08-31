@@ -71,7 +71,11 @@ function computeOpenFromStatus(data) {
 function AppHeader({ isOpen, refreshShopStatus }) {
   const navigation           = useNavigation();
   const { T, isDark, toggleTheme } = useTheme();
-  const { isShopUser } = useAuth();
+  // Shop status editing is ADMIN-only — the website never gave STAFF a
+  // shop-status shortcut (only "Stamp Manager"/"Verify Claim" there), so
+  // gating this on isShopUser (which includes STAFF) was an app-only
+  // over-grant.
+  const { isAdmin } = useAuth();
   const h = useMemo(() => makeHStyles(T), [T]);
   const [showStatusEdit, setShowStatusEdit] = useState(false);
 
@@ -89,7 +93,7 @@ function AppHeader({ isOpen, refreshShopStatus }) {
           </Text>
         </Pressable>
 
-        {isShopUser && (
+        {isAdmin && (
           <TouchableOpacity
             style={h.statusEditBtn}
             onPress={() => setShowStatusEdit(true)}
@@ -119,7 +123,7 @@ function AppHeader({ isOpen, refreshShopStatus }) {
         />
       </TouchableOpacity>
 
-      {isShopUser && (
+      {isAdmin && (
         <ShopStatusFormModal
           visible={showStatusEdit}
           onClose={() => setShowStatusEdit(false)}

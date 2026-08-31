@@ -48,7 +48,10 @@ const MENU = [
     group: 'Operations', minRole: 'STAFF',
     items: [
       { id: 'stamps',       label: 'Stamp Manager', icon: 'qr-code-outline',    minRole: 'STAFF' },
-      { id: 'shopStatus',   label: 'Shop Status',   icon: 'storefront-outline', minRole: 'STAFF' },
+      // Staff scan loyalty QR codes only — the website's admin panel never
+      // gave STAFF a shop-status editor (only ADMIN has "Shop Settings"
+      // there), so this was an app-only over-grant. Matches the website now.
+      { id: 'shopStatus',   label: 'Shop Status',   icon: 'storefront-outline', minRole: 'ADMIN' },
       { id: 'shopSettings', label: 'Shop Settings', icon: 'settings-outline',   minRole: 'ADMIN' },
     ],
   },
