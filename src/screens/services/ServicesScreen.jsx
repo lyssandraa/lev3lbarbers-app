@@ -125,7 +125,15 @@ export default function ServicesScreen() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // useFocusEffect, not a plain mount-only useEffect — bottom-tab screens
+  // mount once and stay mounted, so a plain useEffect only ever checked
+  // login state the first time this tab was opened. Logging in from a
+  // different screen afterward never re-triggered it, leaving `loggedIn`
+  // stuck at its stale value and prices hidden behind "Members only" even
+  // after a real login.
+  useFocusEffect(
+    useCallback(() => { load(); }, [load])
+  );
 
   const openAdd  = () => { setEditingSvc(null); setShowForm(true); };
   const openEdit = (svc) => { setEditingSvc(svc); setShowForm(true); };
