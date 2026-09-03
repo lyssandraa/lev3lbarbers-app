@@ -23,7 +23,9 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -58,6 +60,12 @@
       "eas": {
         "projectId": "11b32519-5308-4aad-a931-92c64d3bb633"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/11b32519-5308-4aad-a931-92c64d3bb633"
     }
   }
 }
