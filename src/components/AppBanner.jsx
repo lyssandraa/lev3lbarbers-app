@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions, Easing, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions, Easing, Pressable, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import api from '../api/api';
@@ -71,9 +71,16 @@ export default function AppBanner() {
 
   if (!messages.length) return null;
 
-  const page = messages[idx]?.page?.trim().toLowerCase().replace(/^\//, '');
-  const target = page && (PAGE_TABS[page] || PAGE_STACK[page]);
+  // "page" gets lowercased/slash-trimmed for internal route matching below,
+  // which would mangle a real URL's path/query casing — so the external-URL
+  // check runs on the raw trimmed value first, matching the website's fix
+  // for the same "banner page field can't hold a real link" limitation.
+  const rawPage = messages[idx]?.page?.trim() || '';
+  const isExternal = /^https?:\/\//i.test(rawPage);
+  const page = !isExternal ? rawPage.toLowerCase().replace(/^\//, '') : '';
+  const target = isExternal || (page && (PAGE_TABS[page] || PAGE_STACK[page]));
   const handlePress = () => {
+    if (isExternal) { Linking.openURL(rawPage).catch(() => {}); return; }
     if (!page) return;
     if (PAGE_TABS[page])  { navigation.navigate('MainApp', { screen: PAGE_TABS[page] }); return; }
     if (PAGE_STACK[page]) { navigation.navigate(PAGE_STACK[page]); return; }

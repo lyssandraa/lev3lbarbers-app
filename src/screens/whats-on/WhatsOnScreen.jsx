@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Modal, ScrollView, TextInput, ActivityIndicator,
-  Animated, Pressable, Alert, Image, Dimensions,
+  Animated, Pressable, Alert, Image, Dimensions, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -207,20 +207,40 @@ function parseBody(body) {
   return out;
 }
 
+// Matches http(s):// URLs and bare "www." ones, trimming a trailing char
+// that's likely sentence punctuation rather than part of the URL — mirrors
+// the website's WhatsOn.jsx linkify. RN Text supports nested, individually
+// tappable Text children, which is how a URL inside a run of plain text
+// becomes just that one word tappable.
+const URL_SPLIT_REGEX = /((?:https?:\/\/|www\.)[^\s]+[^\s.,;:'")\]])/gi;
+const isUrl = (s) => /^(?:https?:\/\/|www\.)/i.test(s);
+
+function linkifyText(text, linkStyle) {
+  return text.split(URL_SPLIT_REGEX).map((part, i) => {
+    if (!isUrl(part)) return part;
+    const href = part.startsWith('www.') ? `https://${part}` : part;
+    return (
+      <Text key={i} style={linkStyle} onPress={() => Linking.openURL(href).catch(() => {})}>
+        {part}
+      </Text>
+    );
+  });
+}
+
 function BodyBlock({ block }) {
   const { T } = useTheme();
   const rs = useMemo(() => makeRsStyles(T), [T]);
   const text = (block.text || '').replace(/\*\*([^*]+)\*\*/g, '$1');
   if (block.t === 'h') return <Text style={rs.bh}>{block.text}</Text>;
-  if (block.t === 'p') return <Text style={rs.bp}>{text}</Text>;
+  if (block.t === 'p') return <Text style={rs.bp}>{linkifyText(text, rs.link)}</Text>;
   if (block.t === 'ul') return (
     <View style={{ marginBottom: 10 }}>
-      {block.items.map((it, i) => <Text key={i} style={rs.bul}>• {it}</Text>)}
+      {block.items.map((it, i) => <Text key={i} style={rs.bul}>• {linkifyText(it, rs.link)}</Text>)}
     </View>
   );
   if (block.t === 'ol') return (
     <View style={{ marginBottom: 10 }}>
-      {block.items.map((it, i) => <Text key={i} style={rs.bul}>{i + 1}. {it}</Text>)}
+      {block.items.map((it, i) => <Text key={i} style={rs.bul}>{i + 1}. {linkifyText(it, rs.link)}</Text>)}
     </View>
   );
   return null;
@@ -560,4 +580,5 @@ function makeRsStyles(T) { return StyleSheet.create({
   bh:  { fontFamily: T.fontHead, fontSize: 20, letterSpacing: 1, color: T.text, marginTop: 18, marginBottom: 6 },
   bp:  { fontFamily: T.fontBodyMd, fontSize: 14, color: strongDim(T), lineHeight: 22, marginBottom: 12 },
   bul: { fontFamily: T.fontBodyMd, fontSize: 14, color: strongDim(T), lineHeight: 22, marginBottom: 4, paddingLeft: 8 },
+  link: { color: T.red, textDecorationLine: 'underline' },
 }); }
