@@ -11,13 +11,19 @@ export default function BannersSection() {
   const { T } = useTheme();
   const s = useMemo(() => makeStyles(T), [T]);
 
-  const [banners, setBanners] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [msg,     setMsg]     = useState('');
-  const [page,    setPage]    = useState('all');
-  const [saving,  setSaving]  = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [editMsg, setEditMsg] = useState('');
+  const [banners,  setBanners]  = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [msg,      setMsg]      = useState('');
+  const [page,     setPage]     = useState('all');
+  // pong-invite/snake-start are in-app-only placements (PlayScreen,
+  // PongInviteScreen) with no website equivalent, so only the generic
+  // "App Banner" (page: 'all') — which maps to the same top-banner slot
+  // the website also has — gets a real choice of where to show.
+  const [platform, setPlatform] = useState('APP');
+  const [saving,   setSaving]   = useState(false);
+  const [editing,  setEditing]  = useState(null);
+  const [editMsg,  setEditMsg]  = useState('');
+  const [editPlatform, setEditPlatform] = useState('APP');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -34,11 +40,19 @@ export default function BannersSection() {
     if (!msg.trim()) return;
     setSaving(true);
     try {
-      await api.post('/banners/add-message', { message: msg.trim(), isActive: true, page });
+      await api.post('/banners/add-message', {
+        message: msg.trim(), isActive: true, page,
+        platform: page === 'all' ? platform : 'APP',
+      });
       setMsg('');
       load();
     } catch (err) { Alert.alert('Error', err.response?.data?.message || 'Could not create.'); }
     finally { setSaving(false); }
+  };
+
+  const choosePage = (value) => {
+    setPage(value);
+    if (value !== 'all') setPlatform('APP'); // no website equivalent for these placements
   };
 
   const toggleActive = async (banner) => {
@@ -52,7 +66,10 @@ export default function BannersSection() {
     if (!editMsg.trim() || !editing) return;
     setSaving(true);
     try {
-      await api.put(`/banners/edit-banner/${editing.id}`, { ...editing, message: editMsg.trim() });
+      await api.put(`/banners/edit-banner/${editing.id}`, {
+        ...editing, message: editMsg.trim(),
+        platform: editing.page === 'all' ? editPlatform : 'APP',
+      });
       setEditing(null);
       load();
     } catch { Alert.alert('Error', 'Could not save.'); }
@@ -85,12 +102,29 @@ export default function BannersSection() {
             <TouchableOpacity
               key={opt.value}
               style={[s.pageChip, page === opt.value && s.pageChipActive]}
-              onPress={() => setPage(opt.value)}
+              onPress={() => choosePage(opt.value)}
             >
               <Text style={[s.pageChipTxt, page === opt.value && s.pageChipTxtActive]}>{opt.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
+        {page === 'all' && (
+          <View style={s.pageRow}>
+            {[
+              { value: 'BOTH',    label: 'Website & App' },
+              { value: 'WEBSITE', label: 'Website only' },
+              { value: 'APP',     label: 'App only' },
+            ].map(opt => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[s.pageChip, platform === opt.value && s.pageChipActive]}
+                onPress={() => setPlatform(opt.value)}
+              >
+                <Text style={[s.pageChipTxt, platform === opt.value && s.pageChipTxtActive]}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         <TextInput
           style={[s.input, { height: 70, textAlignVertical: 'top' }]}
           value={msg}
@@ -123,6 +157,23 @@ export default function BannersSection() {
                 multiline
                 autoFocus
               />
+              {editing.page === 'all' && (
+                <View style={[s.pageRow, { marginBottom: 10 }]}>
+                  {[
+                    { value: 'BOTH',    label: 'Website & App' },
+                    { value: 'WEBSITE', label: 'Website only' },
+                    { value: 'APP',     label: 'App only' },
+                  ].map(opt => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[s.pageChip, editPlatform === opt.value && s.pageChipActive]}
+                      onPress={() => setEditPlatform(opt.value)}
+                    >
+                      <Text style={[s.pageChipTxt, editPlatform === opt.value && s.pageChipTxtActive]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
               <View style={s.row}>
                 <TouchableOpacity style={[s.smBtn, { flex: 1, backgroundColor: T.red }]} onPress={saveEdit} disabled={saving}>
                   <Text style={s.smBtnText}>{saving ? 'SAVING…' : 'SAVE'}</Text>
@@ -142,6 +193,11 @@ export default function BannersSection() {
                 </Text>
                 </View>
               )}
+              {b.platform && b.platform !== 'BOTH' && (
+                <View style={s.pageTag}>
+                  <Text style={s.pageTagTxt}>{b.platform === 'APP' ? 'App only' : 'Website only'}</Text>
+                </View>
+              )}
               <View style={[s.row, { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: T.border }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
                   <Switch
@@ -152,7 +208,7 @@ export default function BannersSection() {
                   />
                   <Text style={s.activeLabel}>{b.active ? 'Active' : 'Inactive'}</Text>
                 </View>
-                <TouchableOpacity style={s.iconBtn} onPress={() => { setEditing(b); setEditMsg(b.message); }}>
+                <TouchableOpacity style={s.iconBtn} onPress={() => { setEditing(b); setEditMsg(b.message); setEditPlatform(b.platform || 'APP'); }}>
                   <Ionicons name="pencil-outline" size={14} color={T.textDim} />
                 </TouchableOpacity>
                 <TouchableOpacity style={[s.iconBtn, { borderColor: T.red }]} onPress={() => remove(b)}>

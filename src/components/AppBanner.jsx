@@ -35,7 +35,13 @@ export default function AppBanner() {
 
   useEffect(() => {
     api.get('/banners/public')
-      .then(r => setMessages(r.data.data || []))
+      .then(r => {
+        // Same list is fetched by the website too — each side keeps only
+        // what's actually meant for it. Older banners have no platform
+        // field at all (pre-dates this feature), so treat missing as "both".
+        const all = r.data.data || [];
+        setMessages(all.filter(b => !b.platform || b.platform === 'BOTH' || b.platform === 'APP'));
+      })
       .catch(() => {});
   }, []);
 
