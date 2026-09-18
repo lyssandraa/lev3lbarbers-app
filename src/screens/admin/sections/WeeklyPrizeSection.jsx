@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, Alert, StyleSheet,
+  ActivityIndicator, Alert, StyleSheet, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../api/api';
@@ -72,7 +72,7 @@ export default function WeeklyPrizeSection() {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <View style={s.wrap}>
+    <ScrollView style={s.scroll} contentContainerStyle={s.wrap}>
       <View style={s.hint}>
         <Ionicons name="information-circle-outline" size={15} color={T.textDim} />
         <Text style={s.hintTxt}>
@@ -152,12 +152,13 @@ export default function WeeklyPrizeSection() {
           : <Text style={s.btnTxt}>SAVE PRIZE</Text>
         }
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
 function makeStyles(T) { return StyleSheet.create({
-  wrap:  { padding: 16 },
+  scroll: { flex: 1 },
+  wrap:  { padding: 16, paddingBottom: 40 },
   hint:  { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginBottom: 20,
            paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: T.border },
   hintTxt: { fontFamily: T.fontBody, fontSize: 12, color: T.textDim, lineHeight: 18, flex: 1 },
