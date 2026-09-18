@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, TextInput, Alert, Share, Modal,
+  ActivityIndicator, TextInput, Alert, Share, Modal, Switch,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,6 +67,7 @@ export default function ProfileScreen({ navigation }) {
   // Overview
   const [profile,       setProfile]       = useState(null);
   const [tierBenefits,  setTierBenefits]  = useState(null);
+  const [newsletterSaving, setNewsletterSaving] = useState(false);
 
   // Bookings
   const [myBookings,    setMyBookings]    = useState([]);
@@ -221,6 +222,19 @@ export default function ProfileScreen({ navigation }) {
       setPwMsg(err.response?.data?.message || 'Failed to change password.');
     } finally {
       setPwLoading(false);
+    }
+  };
+
+  const toggleNewsletter = async () => {
+    const next = !profile.newsletterOptIn;
+    setNewsletterSaving(true);
+    try {
+      await api.put('/auth/profile', { newsletterOptIn: next });
+      setProfile(p => ({ ...p, newsletterOptIn: next }));
+    } catch {
+      Alert.alert('Error', 'Could not update newsletter preference.');
+    } finally {
+      setNewsletterSaving(false);
     }
   };
 
@@ -644,6 +658,23 @@ export default function ProfileScreen({ navigation }) {
 
               <View style={s.divider} />
 
+              {/* Newsletter */}
+              <View style={s.newsletterRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.settingHeading}>Email Newsletter</Text>
+                  <Text style={s.newsletterHint}>Occasional news, offers, and updates from LEV3L Barbers.</Text>
+                </View>
+                <Switch
+                  value={!!profile.newsletterOptIn}
+                  onValueChange={toggleNewsletter}
+                  disabled={newsletterSaving}
+                  trackColor={{ true: T.red, false: T.border }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <View style={s.divider} />
+
               {/* Danger zone */}
               <TouchableOpacity style={s.dangerBtn} onPress={handleDeleteAccount} activeOpacity={0.8}>
                 <Text style={s.dangerBtnText}>DELETE ACCOUNT</Text>
@@ -815,6 +846,8 @@ function makeStyles(T) { return StyleSheet.create({
   outlineBtn:    { borderWidth: 1.5, borderColor: T.textFaint, paddingVertical: 13, alignItems: 'center', marginTop: 14, marginBottom: 4 },
   outlineBtnText:{ fontFamily: T.fontHead, fontSize: 14, letterSpacing: 3, color: T.text },
   divider:       { height: 1, backgroundColor: T.border, marginVertical: 20 },
+  newsletterRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  newsletterHint:{ fontFamily: T.fontBody, fontSize: 12, color: T.textDim, lineHeight: 17, marginTop: 2 },
   dangerBtn:     { borderWidth: 1, borderColor: T.red, paddingVertical: 13, alignItems: 'center' },
   dangerBtnText: { fontFamily: T.fontHead, fontSize: 14, letterSpacing: 3, color: T.red },
 

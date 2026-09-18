@@ -36,14 +36,15 @@ import CreateAccountsSection from './sections/CreateAccountsSection';
 const ROLE_LEVELS = { USER: 1, STAFF: 2, ADMIN: 3, DEVELOPER: 4 };
 const canSee = (role, minRole) => (ROLE_LEVELS[role] || 0) >= (ROLE_LEVELS[minRole] || 0);
 
-/* ── Menu definition (mirrors website AdminPanel.jsx) ── */
+/* ── Menu definition (mirrors website AdminPanel.jsx) ──
+   Order: Operations first (only group STAFF can see), then Overview,
+   Content, Settings, Rewards, Bookings & Barbers, Customers. Barbers and
+   Bookings used to be separate groups even though the Barbers section's
+   own "Availability" tab manages the same booking slots as the Booking
+   System page — merged into one group, matching the website's fix for
+   the same confusion. Newsletter admin (website-only for now) isn't
+   added here — composing/sending is a website-admin action. */
 const MENU = [
-  {
-    group: 'Overview', minRole: 'ADMIN',
-    items: [
-      { id: 'dashboard',  label: 'Dashboard',    icon: 'grid-outline',      minRole: 'ADMIN' },
-    ],
-  },
   {
     group: 'Operations', minRole: 'STAFF',
     items: [
@@ -56,31 +57,9 @@ const MENU = [
     ],
   },
   {
-    group: 'Rewards', minRole: 'ADMIN',
+    group: 'Overview', minRole: 'ADMIN',
     items: [
-      { id: 'rewardPool',   label: 'Reward Pool',      icon: 'gift-outline',           minRole: 'ADMIN' },
-      { id: 'referrals',    label: 'Referral System',  icon: 'people-outline',         minRole: 'ADMIN' },
-      { id: 'birthday',     label: 'Birthday Rewards', icon: 'ribbon-outline',         minRole: 'ADMIN' },
-      { id: 'weeklyPrize',  label: 'Weekly Game Prize',icon: 'game-controller-outline',minRole: 'ADMIN' },
-    ],
-  },
-  {
-    group: 'Customers', minRole: 'ADMIN',
-    items: [
-      { id: 'customers', label: 'Customer Accounts', icon: 'person-outline', minRole: 'ADMIN' },
-    ],
-  },
-  {
-    group: 'Barbers', minRole: 'ADMIN',
-    items: [
-      { id: 'barbers',      label: 'Barbers',      icon: 'cut-outline',        minRole: 'ADMIN' },
-      { id: 'createStaff',  label: 'Create Staff', icon: 'person-add-outline', minRole: 'ADMIN' },
-    ],
-  },
-  {
-    group: 'Bookings', minRole: 'ADMIN',
-    items: [
-      { id: 'bookings', label: 'Booking System', icon: 'calendar-outline', minRole: 'ADMIN' },
+      { id: 'dashboard',  label: 'Dashboard',    icon: 'grid-outline',      minRole: 'ADMIN' },
     ],
   },
   {
@@ -103,6 +82,29 @@ const MENU = [
       { id: 'terms',        label: 'Terms & Conditions', icon: 'document-outline',       minRole: 'ADMIN' },
       { id: 'privacy',      label: 'Privacy Notice',    icon: 'lock-closed-outline',     minRole: 'ADMIN' },
       { id: 'createAdmin',  label: 'Create Admin',      icon: 'key-outline',             minRole: 'DEVELOPER' },
+    ],
+  },
+  {
+    group: 'Rewards', minRole: 'ADMIN',
+    items: [
+      { id: 'rewardPool',   label: 'Reward Pool',      icon: 'gift-outline',           minRole: 'ADMIN' },
+      { id: 'referrals',    label: 'Referral System',  icon: 'people-outline',         minRole: 'ADMIN' },
+      { id: 'birthday',     label: 'Birthday Rewards', icon: 'ribbon-outline',         minRole: 'ADMIN' },
+      { id: 'weeklyPrize',  label: 'Weekly Game Prize',icon: 'game-controller-outline',minRole: 'ADMIN' },
+    ],
+  },
+  {
+    group: 'Bookings & Barbers', minRole: 'ADMIN',
+    items: [
+      { id: 'bookings',     label: 'Booking System',        icon: 'calendar-outline',    minRole: 'ADMIN' },
+      { id: 'barbers',      label: 'Barbers & Availability', icon: 'cut-outline',        minRole: 'ADMIN' },
+      { id: 'createStaff',  label: 'Create Staff',          icon: 'person-add-outline',  minRole: 'ADMIN' },
+    ],
+  },
+  {
+    group: 'Customers', minRole: 'ADMIN',
+    items: [
+      { id: 'customers', label: 'Customer Accounts', icon: 'person-outline', minRole: 'ADMIN' },
     ],
   },
 ];
