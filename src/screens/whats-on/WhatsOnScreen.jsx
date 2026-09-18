@@ -12,7 +12,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import WhatsOnPostFormModal from '../../components/WhatsOnPostFormModal';
 
-const { width: SCREEN_W } = Dimensions.get('window');
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const CARD_IMG_H    = 140;
 const CARD_IMG_W    = SCREEN_W - 32;   // FlatList's 16px horizontal padding on each side
 const MODAL_COVER_H = 200;
@@ -257,14 +257,14 @@ function ArticleModal({ post, onClose }) {
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={ms.backdrop} onPress={onClose}>
         <Pressable onPress={() => {}}>
-        <SafeAreaView style={ms.sheet} edges={['top', 'bottom']}>
+        <SafeAreaView style={ms.sheet} edges={['bottom']}>
           {/* Handle + close */}
           <View style={ms.handle} />
           <TouchableOpacity style={ms.closeBtn} onPress={onClose}>
             <Ionicons name="close" size={22} color={T.text} />
           </TouchableOpacity>
 
-          <ScrollView style={ms.scroll} showsVerticalScrollIndicator={false}>
+          <ScrollView style={ms.scroll} contentContainerStyle={ms.scrollContent} showsVerticalScrollIndicator={false}>
             {!!post.imageUrl && (
               <FocusedImage
                 uri={resolveImageUrl(post.imageUrl)}
@@ -561,10 +561,18 @@ function makeStyles(T) { return StyleSheet.create({
 // ── Article modal styles ───────────────────────────────────────────────────
 function makeMsStyles(T) { return StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  sheet:    { backgroundColor: T.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%', borderWidth: 1, borderColor: T.border },
+  // Fixed pixel cap, not a '90%' string — that percentage can't resolve
+  // against the wrapping Pressable above it, which has no defined height
+  // of its own (it sizes to content), so the sheet would otherwise grow to
+  // fit the entire article with no ceiling on a long post.
+  sheet:    { backgroundColor: T.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: SCREEN_H * 0.9, borderWidth: 1, borderColor: T.border },
   handle:   { width: 40, height: 4, backgroundColor: T.border, borderRadius: 2, alignSelf: 'center', marginTop: 12 },
   closeBtn: { position: 'absolute', right: 16, top: 16, width: 32, height: 32, borderRadius: 16, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
-  scroll:   { padding: 20, paddingTop: 44 },
+  // flex: 1 is what makes this an actual bounded scroll viewport instead of
+  // a view that just sizes to its content (which is what silently killed
+  // scrolling before).
+  scroll:        { flex: 1 },
+  scrollContent: { padding: 20, paddingTop: 44 },
 
   cover:    { borderRadius: 8, marginBottom: 16, backgroundColor: T.surface },
   catBadge: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 4, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 14 },
