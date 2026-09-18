@@ -164,7 +164,7 @@ export default function AdminScreen({ navigation }) {
   /* Access denied */
   if (!isShopUser) {
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={s.safe} edges={[]}>
         <View style={s.denied}>
           <Ionicons name="lock-closed-outline" size={40} color={T.textDim} style={{ marginBottom: 12 }} />
           <Text style={s.deniedTitle}>ACCESS DENIED</Text>
@@ -182,7 +182,7 @@ export default function AdminScreen({ navigation }) {
   /* Section view */
   if (activeSection) {
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={s.safe} edges={[]}>
         <View style={s.header}>
           <TouchableOpacity style={s.headerBtn} onPress={goBack}>
             <Ionicons name="arrow-back" size={20} color={T.textDim} />
@@ -203,7 +203,7 @@ export default function AdminScreen({ navigation }) {
   const visibleGroups = MENU.filter(g => canSee(role, g.minRole));
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={[]}>
       <View style={s.header}>
         {navigation.canGoBack() && (
           <TouchableOpacity style={s.headerBtn} onPress={() => navigation.goBack()}>

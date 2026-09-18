@@ -351,11 +351,16 @@ export default function AppNavigator() {
         initialRouteName={showKiosk ? 'StaffSwitch' : 'MainApp'}
       >
         <RootStack.Screen name="MainApp"        component={MainTabs}            />
-        <RootStack.Screen name="Login"          component={LoginScreen}         />
-        <RootStack.Screen name="Signup"         component={SignupScreen}        />
-        <RootStack.Screen name="ForgotPassword" component={ForgotPasswordScreen}/>
-        <RootStack.Screen name="ResetPassword"  component={ResetPasswordScreen} />
-        <RootStack.Screen name="StaffSwitch"    component={StaffSwitchScreen}   />
+        {/* Edge-swipe-to-go-back is standard iOS stack behavior, not a bug —
+            but these all already have their own explicit close (✕) button,
+            and an accidental swipe while filling in a password/PIN loses
+            whatever was typed. Disabled here the same way PongGame disables
+            it below for its own reason. */}
+        <RootStack.Screen name="Login"          component={LoginScreen}          options={{ gestureEnabled: false }} />
+        <RootStack.Screen name="Signup"         component={SignupScreen}         options={{ gestureEnabled: false }} />
+        <RootStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ gestureEnabled: false }} />
+        <RootStack.Screen name="ResetPassword"  component={ResetPasswordScreen}  options={{ gestureEnabled: false }} />
+        <RootStack.Screen name="StaffSwitch"    component={StaffSwitchScreen}    options={{ gestureEnabled: false }} />
         <RootStack.Screen name="Gallery"        component={GalleryScreen}       />
         <RootStack.Screen name="WhatsOn"        component={WhatsOnScreen}       />
         <RootStack.Screen name="Admin"          component={AdminScreen}         />
