@@ -8,8 +8,16 @@ import api from '../../../api/api';
 import { useTheme } from '../../../context/ThemeContext';
 
 const TABS = ['Hours', 'Info'];
-const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-const DAY_NAMES = { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
+// Numeric day indices matching JS's Date.getDay() (0 = Sunday ... 6 =
+// Saturday) — every other consumer of openingHours (website admin, both
+// public Contact pages, the backend's shop-status job, this app's own
+// Home/Contact screens) keys the object this way. This screen used to key
+// it by 3-letter abbreviations ('mon', 'tue', ...) instead, which nothing
+// else ever read — toggling a day here silently wrote to a key nobody
+// looked at, and saving overwrote the whole openingHours object with the
+// wrong shape, wiping out the correctly-keyed data underneath it.
+const DAY_KEYS = [0, 1, 2, 3, 4, 5, 6];
+const DAY_NAMES = { 0: 'Sunday', 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday' };
 const DEFAULT_HOURS = Object.fromEntries(DAY_KEYS.map(d => [d, { closed: false, open: '09:00', close: '18:00' }]));
 
 export default function ShopSettingsSection() {
