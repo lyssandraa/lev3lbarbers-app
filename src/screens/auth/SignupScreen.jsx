@@ -28,11 +28,14 @@ export default function SignupScreen({ navigation }) {
     setLoading(true);
     try {
       await register(name.trim(), email.trim().toLowerCase(), password, referralCode.trim() || undefined);
-      // Not goBack() — Signup is reachable via StaffSwitch → Login → Signup,
-      // so the screen directly below it isn't always the app. Navigate to
-      // 'MainApp' by name instead, which pops back to it regardless of how
-      // deep the stack got. See the same fix in LoginScreen/StaffSwitchScreen.
-      navigation.navigate('MainApp');
+      // reset(), not navigate('MainApp') — Signup is reachable via
+      // StaffSwitch → Login → Signup, and StaffSwitch can be the ROOT of
+      // the stack with no MainApp already in history (Shop Mode kiosk).
+      // navigate() only pops back to an existing MainApp; when there isn't
+      // one, it pushes a new instance instead, leaving Login/StaffSwitch
+      // stacked underneath and reachable by swiping back. See the same fix
+      // in LoginScreen/StaffSwitchScreen.
+      navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong.');
     } finally {
@@ -44,7 +47,7 @@ export default function SignupScreen({ navigation }) {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('MainApp');
+      navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
     }
   };
 

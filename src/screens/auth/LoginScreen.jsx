@@ -24,13 +24,16 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     try {
       await login(email.trim().toLowerCase(), password);
-      // Not goBack() — Login can be reached via StaffSwitch's "use email
-      // instead" link, so the screen directly below it in the stack isn't
-      // always the app; it can be StaffSwitch itself, leaving the user
-      // dumped back on the switch screen after a successful login instead
-      // of actually entering the app. Navigating to 'MainApp' by name pops
-      // back to it regardless of how deep the stack got.
-      navigation.navigate('MainApp');
+      // Not goBack(), and not navigate('MainApp') either — Login can be
+      // reached via StaffSwitch's "use email instead" link, and StaffSwitch
+      // can itself be the ROOT of the stack (Shop Mode kiosk resets to it
+      // with no MainApp underneath). navigate('MainApp') only pops back to
+      // an existing instance if one is already in history; when it isn't,
+      // it pushes a *new* one instead, leaving Login/StaffSwitch stacked
+      // underneath with stale state — fully reachable by swiping back
+      // since MainApp itself allows the gesture. reset() always replaces
+      // the whole stack, so there's nothing left underneath to swipe back to.
+      navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid credentials.');
     } finally {
@@ -42,7 +45,7 @@ export default function LoginScreen({ navigation }) {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('MainApp');
+      navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
     }
   };
 

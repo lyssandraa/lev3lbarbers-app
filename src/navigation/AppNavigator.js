@@ -28,6 +28,7 @@ import ServicesScreen from '../screens/services/ServicesScreen';
 import ContactScreen  from '../screens/contact/ContactScreen';
 import GalleryScreen  from '../screens/gallery/GalleryScreen';
 import WhatsOnScreen  from '../screens/whats-on/WhatsOnScreen';
+import ArticleScreen  from '../screens/whats-on/ArticleScreen';
 import LoyaltyScreen  from '../screens/loyalty/LoyaltyScreen';
 import ProfileScreen  from '../screens/profile/ProfileScreen';
 import AdminScreen    from '../screens/admin/AdminScreen';
@@ -350,7 +351,12 @@ export default function AppNavigator() {
         screenOptions={{ headerShown: false }}
         initialRouteName={showKiosk ? 'StaffSwitch' : 'MainApp'}
       >
-        <RootStack.Screen name="MainApp"        component={MainTabs}            />
+        {/* MainApp is the app's home base — there's never a legitimate
+            screen "behind" it to reveal, so its own edge-swipe is disabled
+            outright rather than relying on every auth screen never leaving
+            something stale underneath it (see the reset() vs navigate()
+            fix on the auth screens for why that gap existed). */}
+        <RootStack.Screen name="MainApp"        component={MainTabs}            options={{ gestureEnabled: false }} />
         {/* Edge-swipe-to-go-back is standard iOS stack behavior, not a bug —
             but these all already have their own explicit close (✕) button,
             and an accidental swipe while filling in a password/PIN loses
@@ -363,6 +369,7 @@ export default function AppNavigator() {
         <RootStack.Screen name="StaffSwitch"    component={StaffSwitchScreen}    options={{ gestureEnabled: false }} />
         <RootStack.Screen name="Gallery"        component={GalleryScreen}       />
         <RootStack.Screen name="WhatsOn"        component={WhatsOnScreen}       />
+        <RootStack.Screen name="Article"        component={ArticleScreen}       />
         <RootStack.Screen name="Admin"          component={AdminScreen}         />
         <RootStack.Screen name="PongInvite"     component={PongInviteScreen}    />
         <RootStack.Screen name="PongGame"       component={PongGameScreen}      options={{ gestureEnabled: false }} />

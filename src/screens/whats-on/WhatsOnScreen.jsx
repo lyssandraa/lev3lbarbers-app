@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Modal, ScrollView, TextInput, ActivityIndicator,
-  Animated, Pressable, Alert, Image, Dimensions, Linking,
+  ScrollView, TextInput, ActivityIndicator, Animated, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,154 +10,10 @@ import { resolveImageUrl } from '../../config';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import WhatsOnPostFormModal from '../../components/WhatsOnPostFormModal';
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-const CARD_IMG_H    = 140;
-const CARD_IMG_W    = SCREEN_W - 32;   // FlatList's 16px horizontal padding on each side
-const MODAL_COVER_H = 200;
-const MODAL_COVER_W = SCREEN_W - 40;   // sheet's 20px padding on each side
-
-/* Bolder/darker replacements for T.textDim/T.textFaint on specifically the
-   excerpt/date/body text here — matches the website's WhatsOn.jsx contrast
-   pass without touching the shared theme tokens used all over the rest of
-   the app. T.text differs exactly between the two theme objects, so it
-   doubles as a cheap light/dark check. */
-const strongDim   = (T) => T.text === '#1a1a1a' ? 'rgba(26,26,26,0.78)' : 'rgba(234,224,202,0.72)';
-const strongFaint = (T) => T.text === '#1a1a1a' ? 'rgba(26,26,26,0.62)' : 'rgba(234,224,202,0.55)';
-
-const URGENT_MS = 24 * 60 * 60 * 1000;
-
-/* Mirrors the website's countdown: coarse "3d 4h left" text normally, a
-   real ticking HH:MM:SS clock once inside the last 24h. */
-const formatCountdown = (ms, urgent) => {
-  const totalSeconds = Math.floor(ms / 1000);
-  if (urgent) {
-    const pad = (n) => String(n).padStart(2, '0');
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const sec = totalSeconds % 60;
-    return `${pad(h)}:${pad(m)}:${pad(sec)}`;
-  }
-  const mins  = Math.floor(ms / 60000);
-  const days  = Math.floor(mins / 1440);
-  const hours = Math.floor((mins % 1440) / 60);
-  const minutes = mins % 60;
-  if (days > 0)  return `${days}d ${hours}h left`;
-  if (hours > 0) return `${hours}h ${minutes}m left`;
-  return `${minutes}m left`;
-};
-
-function useCountdown(expiresAt) {
-  const [now, setNow] = useState(() => Date.now());
-  const remaining = expiresAt ? new Date(expiresAt).getTime() - now : null;
-  const urgent = remaining !== null && remaining > 0 && remaining < URGENT_MS;
-
-  useEffect(() => {
-    if (!expiresAt) return;
-    const id = setInterval(() => setNow(Date.now()), urgent ? 1000 : 30000);
-    return () => clearInterval(id);
-  }, [expiresAt, urgent]);
-
-  if (!expiresAt || remaining <= 0) return null;
-  return { text: formatCountdown(remaining, urgent), urgent };
-}
-
-/* Countdown badge — calm gold pill with an hourglass normally; once urgent,
-   a solid red pill that pulses (scale + shadow) with a shaking flame icon
-   and a live-ticking clock. RN has no cheap equivalent of the website's
-   crawling diagonal hazard-stripe background (that used an animated CSS
-   background-position, which isn't something React Native's style system
-   drives the same way), so the drama here comes from the pulse + shake +
-   live ticking digits instead. */
-function CountdownBadge({ countdown }) {
-  const { T } = useTheme();
-  const pulse = useRef(new Animated.Value(0)).current;
-  const shake = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (!countdown?.urgent) return;
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 550, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 550, useNativeDriver: true }),
-      ])
-    );
-    const shakeLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shake, { toValue: 1,  duration: 90,  useNativeDriver: true }),
-        Animated.timing(shake, { toValue: -1, duration: 140, useNativeDriver: true }),
-        Animated.timing(shake, { toValue: 1,  duration: 120, useNativeDriver: true }),
-        Animated.timing(shake, { toValue: 0,  duration: 140, useNativeDriver: true }),
-        Animated.delay(300),
-      ])
-    );
-    pulseLoop.start(); shakeLoop.start();
-    return () => { pulseLoop.stop(); shakeLoop.stop(); pulse.setValue(0); shake.setValue(0); };
-  }, [countdown?.urgent]);
-
-  if (!countdown) return null;
-  const scale  = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] });
-  const rotate = shake.interpolate({ inputRange: [-1, 1], outputRange: ['-18deg', '18deg'] });
-
-  return (
-    <Animated.View
-      style={[
-        cs.countdown,
-        { backgroundColor: countdown.urgent ? T.red : T.goldDim, borderColor: countdown.urgent ? '#ff5a5a' : T.gold },
-        countdown.urgent && { transform: [{ scale }], shadowColor: T.red, shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
-      ]}
-    >
-      <Animated.Text style={[cs.countdownIcon, countdown.urgent && { transform: [{ rotate }] }]}>
-        {countdown.urgent ? '🔥' : '⏳'}
-      </Animated.Text>
-      <Text style={[cs.countdownText, { color: countdown.urgent ? '#fff' : T.text }]}>{countdown.text}</Text>
-    </Animated.View>
-  );
-}
-
-const cs = StyleSheet.create({
-  countdown: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    alignSelf: 'flex-start', borderWidth: 1, borderRadius: 4,
-    paddingHorizontal: 8, paddingVertical: 3, marginBottom: 8,
-  },
-  countdownIcon: { fontSize: 11 },
-  countdownText: { fontFamily: 'Montserrat_700Bold', fontSize: 11, letterSpacing: 0.4 },
-});
-
-/* Emulates the website's `object-position: center Y%` — RN's Image has no
-   equivalent, so a cover-fit crop always centers. Measures the image's
-   natural size once, computes the same scale/offset math CSS uses for
-   object-fit:cover + object-position, and positions an oversized Image
-   inside an overflow:hidden box to shift which part stays in frame. Falls
-   back to a plain centered cover image until the natural size is known. */
-function FocusedImage({ uri, focusY = 50, width, height, style }) {
-  const [natural, setNatural] = useState(null);
-
-  useEffect(() => {
-    setNatural(null);
-    if (!uri) return;
-    let cancelled = false;
-    Image.getSize(uri, (w, h) => { if (!cancelled) setNatural({ w, h }); }, () => {});
-    return () => { cancelled = true; };
-  }, [uri]);
-
-  if (!natural) {
-    return <Image source={{ uri }} style={[{ width, height }, style]} resizeMode="cover" />;
-  }
-
-  const scale = Math.max(width / natural.w, height / natural.h);
-  const dw = natural.w * scale;
-  const dh = natural.h * scale;
-  const top = (height - dh) * (focusY / 100);
-  const left = (width - dw) / 2;
-
-  return (
-    <View style={[{ width, height, overflow: 'hidden' }, style]}>
-      <Image source={{ uri }} style={{ width: dw, height: dh, position: 'absolute', top, left }} />
-    </View>
-  );
-}
+import {
+  CARD_IMG_H, CARD_IMG_W, strongDim, strongFaint, useCountdown, CountdownBadge,
+  FocusedImage, CAT_LABELS, fmtDate,
+} from './whatsOnShared';
 
 const FILTERS = [
   { id: 'ALL',       label: 'ALL' },
@@ -166,137 +21,7 @@ const FILTERS = [
   { id: 'PROMOTION', label: 'PROMOS' },
   { id: 'NEWS',      label: 'NEWS' },
 ];
-
-const CAT_LABELS = { ARTICLE: 'ARTICLE', PROMOTION: 'PROMO', NEWS: 'NEWS' };
 const VALID_FILTERS = FILTERS.map(f => f.id);
-
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const fmtDate = (s) => { const d = new Date(s); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
-
-// Lightweight body parser — matches website's parseBlocks + renderInline
-function parseBody(body) {
-  if (!body) return [];
-  const lines = body.split('\n');
-  const out = [];
-  let para = [];
-  const flush = () => { if (para.length) { out.push({ t: 'p', text: para.join(' ').trim() }); para = []; } };
-  let i = 0;
-  while (i < lines.length) {
-    const s = lines[i].trim();
-    if (!s)              { flush(); i++; continue; }
-    if (/^##\s+/.test(s)){ flush(); out.push({ t: 'h', text: s.replace(/^##\s+/, '') }); i++; continue; }
-    if (/^[-•]\s+/.test(s)) {
-      flush();
-      const items = [];
-      while (i < lines.length && /^[-•]\s+/.test(lines[i].trim())) {
-        items.push(lines[i].trim().replace(/^[-•]\s+/, '')); i++;
-      }
-      out.push({ t: 'ul', items }); continue;
-    }
-    if (/^\d+[.)]\s+/.test(s)) {
-      flush();
-      const items = [];
-      while (i < lines.length && /^\d+[.)]\s+/.test(lines[i].trim())) {
-        items.push(lines[i].trim().replace(/^\d+[.)]\s+/, '')); i++;
-      }
-      out.push({ t: 'ol', items }); continue;
-    }
-    para.push(s); i++;
-  }
-  flush();
-  return out;
-}
-
-// Matches http(s):// URLs and bare "www." ones, trimming a trailing char
-// that's likely sentence punctuation rather than part of the URL — mirrors
-// the website's WhatsOn.jsx linkify. RN Text supports nested, individually
-// tappable Text children, which is how a URL inside a run of plain text
-// becomes just that one word tappable.
-const URL_SPLIT_REGEX = /((?:https?:\/\/|www\.)[^\s]+[^\s.,;:'")\]])/gi;
-const isUrl = (s) => /^(?:https?:\/\/|www\.)/i.test(s);
-
-function linkifyText(text, linkStyle) {
-  return text.split(URL_SPLIT_REGEX).map((part, i) => {
-    if (!isUrl(part)) return part;
-    const href = part.startsWith('www.') ? `https://${part}` : part;
-    return (
-      <Text key={i} style={linkStyle} onPress={() => Linking.openURL(href).catch(() => {})}>
-        {part}
-      </Text>
-    );
-  });
-}
-
-function BodyBlock({ block }) {
-  const { T } = useTheme();
-  const rs = useMemo(() => makeRsStyles(T), [T]);
-  const text = (block.text || '').replace(/\*\*([^*]+)\*\*/g, '$1');
-  if (block.t === 'h') return <Text style={rs.bh}>{block.text}</Text>;
-  if (block.t === 'p') return <Text style={rs.bp}>{linkifyText(text, rs.link)}</Text>;
-  if (block.t === 'ul') return (
-    <View style={{ marginBottom: 10 }}>
-      {block.items.map((it, i) => <Text key={i} style={rs.bul}>• {linkifyText(it, rs.link)}</Text>)}
-    </View>
-  );
-  if (block.t === 'ol') return (
-    <View style={{ marginBottom: 10 }}>
-      {block.items.map((it, i) => <Text key={i} style={rs.bul}>{i + 1}. {linkifyText(it, rs.link)}</Text>)}
-    </View>
-  );
-  return null;
-}
-
-function ArticleModal({ post, onClose }) {
-  const { T } = useTheme();
-  const ms = useMemo(() => makeMsStyles(T), [T]);
-  const CAT_COLORS = useMemo(() => ({ ARTICLE: T.text, PROMOTION: T.red, NEWS: T.gold }), [T]);
-  const blocks = parseBody(post.body);
-  const cat    = post.category;
-  const countdown = useCountdown(post.expiresAt);
-  return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={ms.backdrop} onPress={onClose}>
-        <Pressable onPress={() => {}}>
-        <SafeAreaView style={ms.sheet} edges={['bottom']}>
-          {/* Handle + close */}
-          <View style={ms.handle} />
-          <TouchableOpacity style={ms.closeBtn} onPress={onClose}>
-            <Ionicons name="close" size={22} color={T.text} />
-          </TouchableOpacity>
-
-          <ScrollView style={ms.scroll} contentContainerStyle={ms.scrollContent} showsVerticalScrollIndicator={false}>
-            {!!post.imageUrl && (
-              <FocusedImage
-                uri={resolveImageUrl(post.imageUrl)}
-                focusY={post.imageFocusY ?? 50}
-                width={MODAL_COVER_W}
-                height={MODAL_COVER_H}
-                style={ms.cover}
-              />
-            )}
-
-            {/* Category badge */}
-            <View style={[ms.catBadge, { backgroundColor: CAT_COLORS[cat] + '22', borderColor: CAT_COLORS[cat] }]}>
-              <Text style={[ms.catLabel, { color: CAT_COLORS[cat] }]}>{CAT_LABELS[cat] || cat}</Text>
-            </View>
-
-            <Text style={ms.title}>{post.title}</Text>
-            <Text style={ms.date}>{fmtDate(post.createdAt)}</Text>
-            <CountdownBadge countdown={countdown} />
-            <View style={ms.divider} />
-
-            {post.excerpt ? <Text style={ms.excerpt}>{post.excerpt}</Text> : null}
-
-            {blocks.map((b, i) => <BodyBlock key={i} block={b} />)}
-
-            <View style={{ height: 40 }} />
-          </ScrollView>
-        </SafeAreaView>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
 
 function FadeInCard({ index, children }) {
   const anim = useRef(new Animated.Value(0)).current;
@@ -373,21 +98,12 @@ export default function WhatsOnScreen({ navigation, route }) {
     return VALID_FILTERS.includes(fromParams) ? fromParams : 'ALL';
   });
   const [search,  setSearch]  = useState('');
-  const [reading, setReading] = useState(null);
   const [showForm,  setShowForm]  = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const headerAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(headerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
   }, []);
-
-  // ArticleModal is a plain RN <Modal>, not a navigation route — it floats
-  // on top without touching the screen stack, so the edge-swipe-back
-  // gesture on this screen stays fully live underneath it and can pop the
-  // stack while the article is open. Lock it while reading, restore it on close.
-  useEffect(() => {
-    navigation?.setOptions?.({ gestureEnabled: !reading });
-  }, [reading, navigation]);
 
   // Admins see drafts too (via /posts/all), so they can publish/finish a
   // post without a separate trip through the admin panel.
@@ -426,7 +142,7 @@ export default function WhatsOnScreen({ navigation, route }) {
   const renderCard = ({ item, index }) => (
     <PostCard
       item={item} index={index} isAdmin={isAdmin} T={T} CAT_COLORS={CAT_COLORS} s={s}
-      onOpen={() => setReading(item)}
+      onOpen={() => navigation.navigate('Article', { post: item })}
       onEdit={() => openEdit(item)}
       onRemove={() => removePost(item)}
     />
@@ -507,8 +223,6 @@ export default function WhatsOnScreen({ navigation, route }) {
         />
       )}
 
-      {reading && <ArticleModal post={reading} onClose={() => setReading(null)} />}
-
       {isAdmin && (
         <WhatsOnPostFormModal
           visible={showForm}
@@ -534,7 +248,11 @@ function makeStyles(T) { return StyleSheet.create({
   newPostBtn:     { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: T.red, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 4 },
   newPostBtnText: { fontFamily: T.fontBodyBd, fontSize: 11, letterSpacing: 1.5, color: '#fff' },
 
-  filterRow:     { maxHeight: 48, borderBottomWidth: 1, borderBottomColor: T.border },
+  // Was maxHeight: 48, which clipped the tops of the filter labels — this
+  // custom display font's actual rendered line height (letterSpacing: 2 on
+  // top of it) needs a bit more than that to not get cut. Also switched to
+  // a fixed height (not maxHeight) so it can't be squeezed by anything else.
+  filterRow:     { height: 56, borderBottomWidth: 1, borderBottomColor: T.border },
   filterContent: { paddingHorizontal: 16, alignItems: 'center', gap: 8 },
   filterChip:    { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   filterChipActive: { borderBottomColor: T.red },
@@ -564,44 +282,4 @@ function makeStyles(T) { return StyleSheet.create({
   empty:     { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyTitle:{ fontFamily: T.fontHead, fontSize: 26, letterSpacing: 2, color: T.textDim, marginBottom: 8 },
   emptyText: { fontFamily: T.fontBody, fontSize: 13, color: T.textFaint, textAlign: 'center' },
-}); }
-
-// ── Article modal styles ───────────────────────────────────────────────────
-function makeMsStyles(T) { return StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  // Fixed pixel cap, not a '90%' string — that percentage can't resolve
-  // against the wrapping Pressable above it, which has no defined height
-  // of its own (it sizes to content), so the sheet would otherwise grow to
-  // fit the entire article with no ceiling on a long post.
-  // overflow: 'hidden' so content that gets shrunk below its natural size
-  // (see scroll below) is actually clipped to this box instead of spilling
-  // past its rounded corners.
-  sheet:    { backgroundColor: T.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: SCREEN_H * 0.9, borderWidth: 1, borderColor: T.border, overflow: 'hidden' },
-  handle:   { width: 40, height: 4, backgroundColor: T.border, borderRadius: 2, alignSelf: 'center', marginTop: 12 },
-  closeBtn: { position: 'absolute', right: 16, top: 16, width: 32, height: 32, borderRadius: 16, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
-  // flexShrink (not flex/flexGrow) is the key: flex: 1 sets flexBasis: 0,
-  // which made this contribute *zero* height while the sheet measured its
-  // own natural size — collapsing the whole sheet down to just the handle
-  // bar. flexShrink keeps flexBasis: auto (real content height counts
-  // toward the sheet's size, which is what lets maxHeight actually cap it),
-  // and only kicks in to shrink this view once the sheet is capped below
-  // that natural size — which is what makes it a real scrollable viewport.
-  scroll:        { flexShrink: 1 },
-  scrollContent: { padding: 20, paddingTop: 44 },
-
-  cover:    { borderRadius: 8, marginBottom: 16, backgroundColor: T.surface },
-  catBadge: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 4, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 14 },
-  catLabel: { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 2 },
-  title:    { fontFamily: T.fontHead, fontSize: 30, letterSpacing: 1, color: T.text, lineHeight: 32, marginBottom: 6 },
-  date:     { fontFamily: T.fontBodyBd, fontSize: 11, color: strongFaint(T), marginBottom: 14 },
-  divider:  { height: 1, backgroundColor: T.border, marginBottom: 16 },
-  excerpt:  { fontFamily: T.fontBodyBd, fontSize: 14, color: strongDim(T), lineHeight: 22, marginBottom: 16, fontStyle: 'italic' },
-}); }
-
-// ── Body block styles ──────────────────────────────────────────────────────
-function makeRsStyles(T) { return StyleSheet.create({
-  bh:  { fontFamily: T.fontHead, fontSize: 20, letterSpacing: 1, color: T.text, marginTop: 18, marginBottom: 6 },
-  bp:  { fontFamily: T.fontBodyMd, fontSize: 14, color: strongDim(T), lineHeight: 22, marginBottom: 12 },
-  bul: { fontFamily: T.fontBodyMd, fontSize: 14, color: strongDim(T), lineHeight: 22, marginBottom: 4, paddingLeft: 8 },
-  link: { color: T.red, textDecorationLine: 'underline' },
 }); }

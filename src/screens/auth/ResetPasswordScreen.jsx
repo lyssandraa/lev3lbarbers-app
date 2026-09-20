@@ -36,7 +36,11 @@ export default function ResetPasswordScreen({ navigation }) {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('MainApp');
+      // No parent means this was reached with nothing already in history
+      // (e.g. Shop Mode kiosk reset to StaffSwitch first) — reset() rather
+      // than navigate() so there's no stale screen left underneath to
+      // reach by swiping back once inside MainApp.
+      navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
     }
   };
 
