@@ -381,6 +381,14 @@ export default function WhatsOnScreen({ navigation, route }) {
     Animated.timing(headerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
   }, []);
 
+  // ArticleModal is a plain RN <Modal>, not a navigation route — it floats
+  // on top without touching the screen stack, so the edge-swipe-back
+  // gesture on this screen stays fully live underneath it and can pop the
+  // stack while the article is open. Lock it while reading, restore it on close.
+  useEffect(() => {
+    navigation?.setOptions?.({ gestureEnabled: !reading });
+  }, [reading, navigation]);
+
   // Admins see drafts too (via /posts/all), so they can publish/finish a
   // post without a separate trip through the admin panel.
   const load = useCallback(() => {
@@ -565,13 +573,20 @@ function makeMsStyles(T) { return StyleSheet.create({
   // against the wrapping Pressable above it, which has no defined height
   // of its own (it sizes to content), so the sheet would otherwise grow to
   // fit the entire article with no ceiling on a long post.
-  sheet:    { backgroundColor: T.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: SCREEN_H * 0.9, borderWidth: 1, borderColor: T.border },
+  // overflow: 'hidden' so content that gets shrunk below its natural size
+  // (see scroll below) is actually clipped to this box instead of spilling
+  // past its rounded corners.
+  sheet:    { backgroundColor: T.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: SCREEN_H * 0.9, borderWidth: 1, borderColor: T.border, overflow: 'hidden' },
   handle:   { width: 40, height: 4, backgroundColor: T.border, borderRadius: 2, alignSelf: 'center', marginTop: 12 },
   closeBtn: { position: 'absolute', right: 16, top: 16, width: 32, height: 32, borderRadius: 16, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
-  // flex: 1 is what makes this an actual bounded scroll viewport instead of
-  // a view that just sizes to its content (which is what silently killed
-  // scrolling before).
-  scroll:        { flex: 1 },
+  // flexShrink (not flex/flexGrow) is the key: flex: 1 sets flexBasis: 0,
+  // which made this contribute *zero* height while the sheet measured its
+  // own natural size — collapsing the whole sheet down to just the handle
+  // bar. flexShrink keeps flexBasis: auto (real content height counts
+  // toward the sheet's size, which is what lets maxHeight actually cap it),
+  // and only kicks in to shrink this view once the sheet is capped below
+  // that natural size — which is what makes it a real scrollable viewport.
+  scroll:        { flexShrink: 1 },
   scrollContent: { padding: 20, paddingTop: 44 },
 
   cover:    { borderRadius: 8, marginBottom: 16, backgroundColor: T.surface },
