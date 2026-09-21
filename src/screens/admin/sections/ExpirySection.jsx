@@ -10,6 +10,7 @@ const FIELDS = [
   { key: 'stampDays',      label: 'STAMP EXPIRY (days)',        hint: 'Days before unused stamps expire' },
   { key: 'referralDays',   label: 'REFERRAL EXPIRY (days)',     hint: 'Days before referral rewards expire' },
   { key: 'mysteryBoxDays', label: 'MYSTERY BOX EXPIRY (days)', hint: 'Days before mystery box rewards expire' },
+  { key: 'gameWinDays',    label: 'WEEKLY GAME PRIZE (days)',  hint: 'Days a winner has to redeem their prize in store' },
 ];
 
 export default function ExpirySection() {
@@ -18,11 +19,22 @@ export default function ExpirySection() {
 
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
-  const [form, setForm] = useState({ stampDays: '', referralDays: '', mysteryBoxDays: '' });
+  const [form, setForm] = useState({ stampDays: '', referralDays: '', mysteryBoxDays: '', gameWinDays: '' });
 
   useEffect(() => {
     api.get('/expiry/settings')
-      .then(r => setForm({ stampDays: String(r.data.stampDays || ''), referralDays: String(r.data.referralDays || ''), mysteryBoxDays: String(r.data.mysteryBoxDays || '') }))
+      .then(r => {
+        // API returns { settings: {...} }, not the fields flat on r.data —
+        // this was reading r.data.stampDays etc directly before, which was
+        // always undefined, so every field silently loaded blank.
+        const set = r.data.settings || {};
+        setForm({
+          stampDays:      String(set.stampDays || ''),
+          referralDays:   String(set.referralDays || ''),
+          mysteryBoxDays: String(set.mysteryBoxDays || ''),
+          gameWinDays:    String(set.gameWinDays || ''),
+        });
+      })
       .catch(() => Alert.alert('Error', 'Could not load expiry settings.'))
       .finally(() => setLoading(false));
   }, []);
@@ -36,6 +48,7 @@ export default function ExpirySection() {
         stampDays:      form.stampDays ? Number(form.stampDays) : null,
         referralDays:   form.referralDays ? Number(form.referralDays) : null,
         mysteryBoxDays: form.mysteryBoxDays ? Number(form.mysteryBoxDays) : null,
+        gameWinDays:    form.gameWinDays ? Number(form.gameWinDays) : null,
       });
       Alert.alert('Saved', 'Expiry settings updated.');
     } catch (err) { Alert.alert('Error', err.response?.data?.message || 'Could not save.'); }
