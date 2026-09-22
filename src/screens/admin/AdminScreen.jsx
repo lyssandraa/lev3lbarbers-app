@@ -20,6 +20,7 @@ import BarbersSection       from './sections/BarbersSection';
 import BookingsSection      from './sections/BookingsSection';
 import ServicesSection      from './sections/ServicesSection';
 import BannersSection       from './sections/BannersSection';
+import HeroSlideshowSection from './sections/HeroSlideshowSection';
 import WhatsOnSection       from './sections/WhatsOnSection';
 import OrdersSection        from './sections/OrdersSection';
 import GiftCardsSection     from './sections/GiftCardsSection';
@@ -49,11 +50,6 @@ const MENU = [
     group: 'Operations', minRole: 'STAFF',
     items: [
       { id: 'stamps',       label: 'Stamp Manager', icon: 'qr-code-outline',    minRole: 'STAFF' },
-      // Staff scan loyalty QR codes only — the website's admin panel never
-      // gave STAFF a shop-status editor (only ADMIN has "Shop Settings"
-      // there), so this was an app-only over-grant. Matches the website now.
-      { id: 'shopStatus',   label: 'Shop Status',   icon: 'storefront-outline', minRole: 'ADMIN' },
-      { id: 'shopSettings', label: 'Shop Settings', icon: 'settings-outline',   minRole: 'ADMIN' },
     ],
   },
   {
@@ -65,22 +61,35 @@ const MENU = [
   {
     group: 'Content', minRole: 'ADMIN',
     items: [
-      { id: 'services',  label: 'Services',    icon: 'list-outline',        minRole: 'ADMIN' },
-      { id: 'banners',   label: 'Banners',     icon: 'megaphone-outline',   minRole: 'ADMIN' },
-      { id: 'whatsOn',   label: "What's On",   icon: 'newspaper-outline',   minRole: 'ADMIN' },
-      { id: 'orders',    label: 'Orders',      icon: 'bag-outline',         minRole: 'ADMIN' },
-      { id: 'giftCards', label: 'Gift Cards',  icon: 'card-outline',        minRole: 'ADMIN' },
-      { id: 'promos',    label: 'Promo Codes', icon: 'pricetag-outline',    minRole: 'ADMIN' },
+      { id: 'services',      label: 'Services',       icon: 'list-outline',        minRole: 'ADMIN' },
+      { id: 'banners',       label: 'Banners',        icon: 'megaphone-outline',   minRole: 'ADMIN' },
+      { id: 'heroSlideshow', label: 'Hero Slideshow', icon: 'images-outline',      minRole: 'ADMIN' },
+      // Gallery and Shop Products already have full admin add/edit/delete
+      // built in as inline controls on their own customer-facing screens
+      // (GalleryScreen/ShopScreen, gated on isAdmin) — these two just link
+      // out to those screens instead of duplicating that UI here.
+      { id: 'gallery',       label: 'Gallery',        icon: 'albums-outline',      minRole: 'ADMIN', route: 'Gallery' },
+      { id: 'shopProducts',  label: 'Shop Products',  icon: 'pricetags-outline',   minRole: 'ADMIN', route: { screen: 'Shop' } },
+      { id: 'whatsOn',       label: "What's On",      icon: 'newspaper-outline',   minRole: 'ADMIN' },
+      { id: 'orders',        label: 'Orders',         icon: 'bag-outline',         minRole: 'ADMIN' },
+      { id: 'giftCards',     label: 'Gift Cards',     icon: 'card-outline',        minRole: 'ADMIN' },
+      { id: 'promos',        label: 'Promo Codes',    icon: 'pricetag-outline',    minRole: 'ADMIN' },
     ],
   },
   {
     group: 'Settings', minRole: 'ADMIN',
     items: [
+      // Shop Status/Settings and Create Staff moved here from
+      // Operations/Bookings & Barbers to match the website's grouping —
+      // both admin panels now file these under Settings.
+      { id: 'shopStatus',   label: 'Shop Status',   icon: 'storefront-outline', minRole: 'ADMIN' },
+      { id: 'shopSettings', label: 'Shop Settings', icon: 'settings-outline',   minRole: 'ADMIN' },
       { id: 'loyalty',      label: 'Loyalty Settings',  icon: 'star-outline',            minRole: 'ADMIN' },
       { id: 'expiry',       label: 'Reward Expiry',     icon: 'time-outline',            minRole: 'ADMIN' },
       { id: 'rewardTerms',  label: 'Reward T&C',        icon: 'document-text-outline',   minRole: 'ADMIN' },
       { id: 'terms',        label: 'Terms & Conditions', icon: 'document-outline',       minRole: 'ADMIN' },
       { id: 'privacy',      label: 'Privacy Notice',    icon: 'lock-closed-outline',     minRole: 'ADMIN' },
+      { id: 'createStaff',  label: 'Create Staff',      icon: 'person-add-outline', minRole: 'ADMIN' },
       { id: 'createAdmin',  label: 'Create Admin',      icon: 'key-outline',             minRole: 'DEVELOPER' },
     ],
   },
@@ -98,7 +107,6 @@ const MENU = [
     items: [
       { id: 'bookings',     label: 'Booking System',        icon: 'calendar-outline',    minRole: 'ADMIN' },
       { id: 'barbers',      label: 'Barbers & Availability', icon: 'cut-outline',        minRole: 'ADMIN' },
-      { id: 'createStaff',  label: 'Create Staff',          icon: 'person-add-outline',  minRole: 'ADMIN' },
     ],
   },
   {
@@ -127,6 +135,7 @@ function renderSection(sectionId) {
     case 'bookings':    return <BookingsSection />;
     case 'services':    return <ServicesSection />;
     case 'banners':     return <BannersSection />;
+    case 'heroSlideshow': return <HeroSlideshowSection />;
     case 'whatsOn':     return <WhatsOnSection />;
     case 'orders':      return <OrdersSection />;
     case 'giftCards':   return <GiftCardsSection />;
@@ -160,7 +169,11 @@ export default function AdminScreen({ navigation }) {
     setOpenGroups(prev => ({ [group]: !prev[group] }));
   };
 
-  const navigate = (id) => { setActiveSection(id); };
+  const navigate = (item) => {
+    if (typeof item.route === 'string') { navigation.navigate(item.route); return; }
+    if (item.route) { navigation.navigate('MainApp', item.route); return; }
+    setActiveSection(item.id);
+  };
   const goBack   = ()  => { setActiveSection(null); };
 
   /* Access denied */
@@ -257,7 +270,7 @@ export default function AdminScreen({ navigation }) {
                 <TouchableOpacity
                   key={item.id}
                   style={[s.menuItem, idx < visibleItems.length - 1 && s.menuItemBorder]}
-                  onPress={() => navigate(item.id)}
+                  onPress={() => navigate(item)}
                   activeOpacity={0.7}
                 >
                   <View style={s.menuIconWrap}>
