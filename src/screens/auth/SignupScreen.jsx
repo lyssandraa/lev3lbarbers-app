@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -15,6 +16,7 @@ export default function SignupScreen({ navigation }) {
   const [email,        setEmail]        = useState('');
   const [password,     setPassword]     = useState('');
   const [referralCode, setReferralCode] = useState('');
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
   const [showPw,       setShowPw]       = useState(false);
   const [error,        setError]        = useState('');
   const [loading,      setLoading]      = useState(false);
@@ -27,7 +29,7 @@ export default function SignupScreen({ navigation }) {
     setError('');
     setLoading(true);
     try {
-      await register(name.trim(), email.trim().toLowerCase(), password, referralCode.trim() || undefined);
+      await register(name.trim(), email.trim().toLowerCase(), password, referralCode.trim() || undefined, newsletterOptIn);
       // reset(), not navigate('MainApp') — Signup is reachable via
       // StaffSwitch → Login → Signup, and StaffSwitch can be the ROOT of
       // the stack with no MainApp already in history (Shop Mode kiosk).
@@ -123,6 +125,13 @@ export default function SignupScreen({ navigation }) {
             autoCorrect={false}
           />
 
+          <TouchableOpacity style={s.checkRow} onPress={() => setNewsletterOptIn(v => !v)} activeOpacity={0.7}>
+            <View style={[s.checkbox, newsletterOptIn && s.checkboxOn]}>
+              {newsletterOptIn && <Ionicons name="checkmark" size={13} color="#fff" />}
+            </View>
+            <Text style={s.checkLabel}>Send me news, offers and updates</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={s.btn} onPress={handleSubmit} disabled={loading} activeOpacity={0.8}>
             {loading
               ? <ActivityIndicator color="#fff" />
@@ -161,6 +170,10 @@ function makeStyles(T) { return StyleSheet.create({
   inputRow:   { flexDirection: 'row', alignItems: 'center', backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
   eyeBtn:     { paddingHorizontal: 14, paddingVertical: 13 },
   eyeText:    { color: T.textDim, fontSize: 14 },
+  checkRow:   { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 22 },
+  checkbox:   { width: 20, height: 20, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
+  checkboxOn: { backgroundColor: T.red, borderColor: T.red },
+  checkLabel: { fontFamily: T.fontBody, fontSize: 13, color: T.textDim, flexShrink: 1 },
   btn:        { backgroundColor: T.red, paddingVertical: 16, alignItems: 'center', marginTop: 26, minHeight: 52, justifyContent: 'center' },
   btnText:    { fontFamily: T.fontHead, fontSize: 17, letterSpacing: 3, color: '#fff' },
   switchRow:  { flexDirection: 'row', justifyContent: 'center', marginTop: 22 },

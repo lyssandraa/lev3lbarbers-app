@@ -41,8 +41,8 @@ export function AuthProvider({ children }) {
     await loginWithToken(data.token);
   };
 
-  const register = async (name, email, password, referralCode) => {
-    const { data } = await api.post('/auth/register', { name, email, password, referralCode });
+  const register = async (name, email, password, referralCode, newsletterOptIn) => {
+    const { data } = await api.post('/auth/register', { name, email, password, referralCode, newsletterOptIn });
     await loginWithToken(data.token);
     return data;
   };

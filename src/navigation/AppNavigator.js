@@ -38,6 +38,7 @@ import ScanScreen     from '../screens/scan/ScanScreen';
 import AppBanner           from '../components/AppBanner';
 import WinnerModal         from '../components/WinnerModal';
 import IncomingInviteModal from '../components/IncomingInviteModal';
+import NewsletterAnnouncementModal from '../components/NewsletterAnnouncementModal';
 import PongInviteScreen    from '../screens/play/PongInviteScreen';
 import PongGameScreen      from '../screens/play/PongGameScreen';
 
@@ -222,6 +223,7 @@ function MainTabs() {
     <View style={{ flex: 1, backgroundColor: T.bg }}>
       <WinnerModal />
       <IncomingInviteModal />
+      <NewsletterAnnouncementModal />
       <AppBanner />
       <AppHeader isOpen={isOpen} refreshShopStatus={fetchStatus} />
       <Tab.Navigator
