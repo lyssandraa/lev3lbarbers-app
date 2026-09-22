@@ -168,7 +168,10 @@ export default function AdminScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const role = user?.role || 'USER';
   const [activeSection, setActiveSection] = useState(null);
-  const [openGroups,    setOpenGroups]    = useState({ Rewards: true });
+  // Matches the website: ADMIN lands on Overview (Dashboard) open by
+  // default; STAFF — who can only see Stamp Manager inside Rewards —
+  // land there instead, since Overview is hidden from them entirely.
+  const [openGroups,    setOpenGroups]    = useState({ [isAdmin ? 'Overview' : 'Rewards']: true });
 
   const toggleGroup = (group) => {
     setOpenGroups(prev => ({ [group]: !prev[group] }));
