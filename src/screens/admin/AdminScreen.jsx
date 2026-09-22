@@ -38,20 +38,19 @@ const ROLE_LEVELS = { USER: 1, STAFF: 2, ADMIN: 3, DEVELOPER: 4 };
 const canSee = (role, minRole) => (ROLE_LEVELS[role] || 0) >= (ROLE_LEVELS[minRole] || 0);
 
 /* ── Menu definition (mirrors website AdminPanel.jsx) ──
-   Order: Operations first (only group STAFF can see), then Overview,
-   Content, Settings, Rewards, Bookings & Barbers, Customers. Barbers and
-   Bookings used to be separate groups even though the Barbers section's
-   own "Availability" tab manages the same booking slots as the Booking
-   System page — merged into one group, matching the website's fix for
-   the same confusion. Newsletter admin (website-only for now) isn't
-   added here — composing/sending is a website-admin action. */
+   Regrouped by actual job rather than by role — each group is now one
+   clear concept (Content, Shop, Rewards, Settings, Team & Bookings,
+   Customers) instead of a role-based "Operations" bucket plus two
+   junk-drawer groups (the old Content and Settings mixed several
+   unrelated concerns each). Stamp Manager moved into Rewards — stamps
+   are the loyalty mechanic, so it's a tighter fit than standing alone,
+   and it still works for STAFF: group and item visibility are filtered
+   independently below, so a STAFF user just sees a single "Rewards"
+   group containing only Stamp Manager — everything else in it stays
+   hidden. Newsletter admin (website-only) isn't added here — composing/
+   sending is a website-admin action, so unlike the website this group
+   stays "Customers" rather than "Customers & Communication". */
 const MENU = [
-  {
-    group: 'Operations', minRole: 'STAFF',
-    items: [
-      { id: 'stamps',       label: 'Stamp Manager', icon: 'qr-code-outline',    minRole: 'STAFF' },
-    ],
-  },
   {
     group: 'Overview', minRole: 'ADMIN',
     items: [
@@ -61,7 +60,6 @@ const MENU = [
   {
     group: 'Content', minRole: 'ADMIN',
     items: [
-      { id: 'services',      label: 'Services',       icon: 'list-outline',        minRole: 'ADMIN' },
       { id: 'banners',       label: 'Banners',        icon: 'megaphone-outline',   minRole: 'ADMIN' },
       { id: 'heroSlideshow', label: 'Hero Slideshow', icon: 'images-outline',      minRole: 'ADMIN' },
       // Gallery and Shop Products already have full admin add/edit/delete
@@ -69,43 +67,49 @@ const MENU = [
       // (GalleryScreen/ShopScreen, gated on isAdmin) — these two just link
       // out to those screens instead of duplicating that UI here.
       { id: 'gallery',       label: 'Gallery',        icon: 'albums-outline',      minRole: 'ADMIN', route: 'Gallery' },
-      { id: 'shopProducts',  label: 'Shop Products',  icon: 'pricetags-outline',   minRole: 'ADMIN', route: { screen: 'Shop' } },
       { id: 'whatsOn',       label: "What's On",      icon: 'newspaper-outline',   minRole: 'ADMIN' },
+      { id: 'services',      label: 'Services',       icon: 'list-outline',        minRole: 'ADMIN' },
+    ],
+  },
+  {
+    group: 'Shop', minRole: 'ADMIN',
+    items: [
+      { id: 'shopProducts',  label: 'Shop Products',  icon: 'pricetags-outline',   minRole: 'ADMIN', route: { screen: 'Shop' } },
       { id: 'orders',        label: 'Orders',         icon: 'bag-outline',         minRole: 'ADMIN' },
       { id: 'giftCards',     label: 'Gift Cards',     icon: 'card-outline',        minRole: 'ADMIN' },
       { id: 'promos',        label: 'Promo Codes',    icon: 'pricetag-outline',    minRole: 'ADMIN' },
     ],
   },
   {
-    group: 'Settings', minRole: 'ADMIN',
+    group: 'Rewards', minRole: 'STAFF',
     items: [
-      // Shop Status/Settings and Create Staff moved here from
-      // Operations/Bookings & Barbers to match the website's grouping —
-      // both admin panels now file these under Settings.
-      { id: 'shopStatus',   label: 'Shop Status',   icon: 'storefront-outline', minRole: 'ADMIN' },
-      { id: 'shopSettings', label: 'Shop Settings', icon: 'settings-outline',   minRole: 'ADMIN' },
-      { id: 'loyalty',      label: 'Loyalty Settings',  icon: 'star-outline',            minRole: 'ADMIN' },
-      { id: 'expiry',       label: 'Reward Expiry',     icon: 'time-outline',            minRole: 'ADMIN' },
-      { id: 'rewardTerms',  label: 'Reward T&C',        icon: 'document-text-outline',   minRole: 'ADMIN' },
-      { id: 'terms',        label: 'Terms & Conditions', icon: 'document-outline',       minRole: 'ADMIN' },
-      { id: 'privacy',      label: 'Privacy Notice',    icon: 'lock-closed-outline',     minRole: 'ADMIN' },
-      { id: 'createStaff',  label: 'Create Staff',      icon: 'person-add-outline', minRole: 'ADMIN' },
-      { id: 'createAdmin',  label: 'Create Admin',      icon: 'key-outline',             minRole: 'DEVELOPER' },
-    ],
-  },
-  {
-    group: 'Rewards', minRole: 'ADMIN',
-    items: [
+      { id: 'stamps',       label: 'Stamp Manager',    icon: 'qr-code-outline',        minRole: 'STAFF' },
       { id: 'rewardPool',   label: 'Reward Pool',      icon: 'gift-outline',           minRole: 'ADMIN' },
       { id: 'referrals',    label: 'Referral System',  icon: 'people-outline',         minRole: 'ADMIN' },
       { id: 'birthday',     label: 'Birthday Rewards', icon: 'ribbon-outline',         minRole: 'ADMIN' },
       { id: 'weeklyPrize',  label: 'Weekly Game Prize',icon: 'game-controller-outline',minRole: 'ADMIN' },
+      { id: 'expiry',       label: 'Reward Expiry',    icon: 'time-outline',           minRole: 'ADMIN' },
+      { id: 'rewardTerms',  label: 'Reward T&C',       icon: 'document-text-outline',  minRole: 'ADMIN' },
     ],
   },
   {
-    group: 'Bookings & Barbers', minRole: 'ADMIN',
+    group: 'Settings', minRole: 'ADMIN',
     items: [
-      { id: 'bookings',     label: 'Booking System',        icon: 'calendar-outline',    minRole: 'ADMIN' },
+      // Shop Status is an app-only convenience quick-toggle (the website
+      // never had a separate one, only the full Shop Settings form).
+      { id: 'shopStatus',   label: 'Shop Status',   icon: 'storefront-outline', minRole: 'ADMIN' },
+      { id: 'shopSettings', label: 'Shop Settings', icon: 'settings-outline',   minRole: 'ADMIN' },
+      { id: 'loyalty',      label: 'Loyalty Settings',  icon: 'star-outline',            minRole: 'ADMIN' },
+      { id: 'terms',        label: 'Terms & Conditions', icon: 'document-outline',       minRole: 'ADMIN' },
+      { id: 'privacy',      label: 'Privacy Notice',    icon: 'lock-closed-outline',     minRole: 'ADMIN' },
+    ],
+  },
+  {
+    group: 'Team & Bookings', minRole: 'ADMIN',
+    items: [
+      { id: 'createStaff',  label: 'Create Staff',           icon: 'person-add-outline', minRole: 'ADMIN' },
+      { id: 'createAdmin',  label: 'Create Admin',           icon: 'key-outline',        minRole: 'DEVELOPER' },
+      { id: 'bookings',     label: 'Booking System',         icon: 'calendar-outline',   minRole: 'ADMIN' },
       { id: 'barbers',      label: 'Barbers & Availability', icon: 'cut-outline',        minRole: 'ADMIN' },
     ],
   },
@@ -163,7 +167,7 @@ export default function AdminScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const role = user?.role || 'USER';
   const [activeSection, setActiveSection] = useState(null);
-  const [openGroups,    setOpenGroups]    = useState({ Operations: true });
+  const [openGroups,    setOpenGroups]    = useState({ Rewards: true });
 
   const toggleGroup = (group) => {
     setOpenGroups(prev => ({ [group]: !prev[group] }));
