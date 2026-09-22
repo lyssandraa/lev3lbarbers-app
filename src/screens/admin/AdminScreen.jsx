@@ -21,6 +21,7 @@ import BookingsSection      from './sections/BookingsSection';
 import ServicesSection      from './sections/ServicesSection';
 import BannersSection       from './sections/BannersSection';
 import HeroSlideshowSection from './sections/HeroSlideshowSection';
+import NewsletterSection    from './sections/NewsletterSection';
 import WhatsOnSection       from './sections/WhatsOnSection';
 import OrdersSection        from './sections/OrdersSection';
 import GiftCardsSection     from './sections/GiftCardsSection';
@@ -40,16 +41,14 @@ const canSee = (role, minRole) => (ROLE_LEVELS[role] || 0) >= (ROLE_LEVELS[minRo
 /* ── Menu definition (mirrors website AdminPanel.jsx) ──
    Regrouped by actual job rather than by role — each group is now one
    clear concept (Content, Shop, Rewards, Settings, Team & Bookings,
-   Customers) instead of a role-based "Operations" bucket plus two
-   junk-drawer groups (the old Content and Settings mixed several
-   unrelated concerns each). Stamp Manager moved into Rewards — stamps
-   are the loyalty mechanic, so it's a tighter fit than standing alone,
-   and it still works for STAFF: group and item visibility are filtered
-   independently below, so a STAFF user just sees a single "Rewards"
-   group containing only Stamp Manager — everything else in it stays
-   hidden. Newsletter admin (website-only) isn't added here — composing/
-   sending is a website-admin action, so unlike the website this group
-   stays "Customers" rather than "Customers & Communication". */
+   Customers & Communication) instead of a role-based "Operations" bucket
+   plus two junk-drawer groups (the old Content and Settings mixed
+   several unrelated concerns each). Stamp Manager moved into Rewards —
+   stamps are the loyalty mechanic, so it's a tighter fit than standing
+   alone, and it still works for STAFF: group and item visibility are
+   filtered independently below, so a STAFF user just sees a single
+   "Rewards" group containing only Stamp Manager — everything else in it
+   stays hidden. */
 const MENU = [
   {
     group: 'Overview', minRole: 'ADMIN',
@@ -114,9 +113,10 @@ const MENU = [
     ],
   },
   {
-    group: 'Customers', minRole: 'ADMIN',
+    group: 'Customers & Communication', minRole: 'ADMIN',
     items: [
-      { id: 'customers', label: 'Customer Accounts', icon: 'person-outline', minRole: 'ADMIN' },
+      { id: 'customers',  label: 'Customer Accounts', icon: 'person-outline',    minRole: 'ADMIN' },
+      { id: 'newsletter', label: 'Newsletter',        icon: 'mail-outline',      minRole: 'ADMIN' },
     ],
   },
 ];
@@ -135,6 +135,7 @@ function renderSection(sectionId) {
     case 'referrals':   return <ReferralsSection />;
     case 'birthday':    return <BirthdaySection />;
     case 'customers':   return <CustomersSection />;
+    case 'newsletter':  return <NewsletterSection />;
     case 'barbers':     return <BarbersSection />;
     case 'bookings':    return <BookingsSection />;
     case 'services':    return <ServicesSection />;
