@@ -8,6 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
+      "version": "1.1.0",
       "supportsTablet": true,
       "bundleIdentifier": "com.lev3lbarbers.app",
       "infoPlist": {
@@ -15,6 +16,7 @@
       }
     },
     "android": {
+      "version": "1.0.0",
       "package": "com.lev3lbarbers.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
