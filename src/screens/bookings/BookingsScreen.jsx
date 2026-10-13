@@ -2,12 +2,12 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Image,
+  TextInput, ActivityIndicator, Alert, Image, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
-import { resolveImageUrl } from '../../config';
+import { resolveImageUrl, WEBSITE_URL } from '../../config';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -91,12 +91,18 @@ export default function BookingsScreen() {
   const [submitting,       setSubmitting]       = useState(false);
   const [booked,           setBooked]           = useState(false);
 
-  // Load services on mount
+  // Deposit settings decide whether a service can be booked in the app
+  const [depositPercent,   setDepositPercent]   = useState(0);
+
+  // Load services and booking settings on mount
   useEffect(() => {
     api.get('/services/public-services')
-      .then(r => setServices(r.data || []))
+      .then(r => setServices(r.data.services || []))
       .catch(() => {})
       .finally(() => setLoadingServices(false));
+    api.get('/booking-settings')
+      .then(r => setDepositPercent(r.data?.depositPercent || 0))
+      .catch(() => {});
   }, []);
 
   // Load barbers when service selected
@@ -137,7 +143,8 @@ export default function BookingsScreen() {
       const r = await api.get('/bookings/available-slots', {
         params: { barberId, serviceId, date },
       });
-      setSlots(r.data.slots || r.data || []);
+      // The API returns [{ time, barbers }]; the app only needs the times
+      setSlots((r.data.slots || r.data || []).map(slot => (typeof slot === 'string' ? slot : slot.time)));
     } catch {
       // ignore
     } finally {
@@ -145,7 +152,25 @@ export default function BookingsScreen() {
     }
   }, []);
 
+  // The app has no card payment screen, so services that need a deposit are
+  // booked on the website instead, before any time is spent picking a slot.
   const handleSelectService = (svc) => {
+    const deposit = depositPercent > 0 && svc.price > 0
+      ? Math.round(svc.price * depositPercent) / 100
+      : 0;
+    if (deposit > 0) {
+      Alert.alert(
+        'Deposit required',
+        `${svc.name} needs a £${deposit.toFixed(2)} deposit to book. Deposits are paid securely on our website, so we'll take you to the booking page there to finish.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Book on website', onPress: () => Linking.openURL(`${WEBSITE_URL}/bookings`).catch(() => {
+            Alert.alert('Could not open the website', `Please visit ${WEBSITE_URL}/bookings to book.`);
+          }) },
+        ]
+      );
+      return;
+    }
     setSelectedService(svc);
     setSelectedBarber(null);
     setSelectedDate(null);
@@ -181,7 +206,7 @@ export default function BookingsScreen() {
     }
     setSubmitting(true);
     try {
-      await api.post('/bookings', {
+      const { data } = await api.post('/bookings', {
         serviceId:  selectedService.id,
         barberId:   selectedBarber.id,
         date:       selectedDate,
@@ -191,6 +216,15 @@ export default function BookingsScreen() {
         guestPhone: guestPhone.trim() || undefined,
         notes:      notes.trim() || undefined,
       });
+      // Settings changed to require a deposit while the customer was booking
+      if (data?.requiresPayment) {
+        Alert.alert(
+          'Deposit required',
+          'This booking now needs a deposit, which is paid on our website. Please book there instead.',
+          [{ text: 'Open website', onPress: () => Linking.openURL(`${WEBSITE_URL}/bookings`).catch(() => {}) }]
+        );
+        return;
+      }
       setBooked(true);
     } catch (err) {
       Alert.alert('Booking failed', err.response?.data?.message || 'Something went wrong. Please try again.');

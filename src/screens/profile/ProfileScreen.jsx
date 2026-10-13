@@ -238,24 +238,34 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  const handleDeleteAccount = () => {
+  // Any wallet credit is forfeited on deletion, so the customer is shown the
+  // amount and has to agree to it explicitly (or keep the account to spend it).
+  const handleDeleteAccount = (balance = wallet.balance) => {
+    const hasCredit = balance > 0;
+    const amount = `£${Number(balance).toFixed(2)}`;
+
+    const confirmDelete = async () => {
+      try {
+        await api.delete('/auth/delete', { data: { forfeitWalletBalance: hasCredit ? balance : 0 } });
+        logout();
+      } catch (err) {
+        // The balance changed since the warning was shown: warn again with the real amount
+        if (err.response?.data?.code === 'WALLET_BALANCE') {
+          handleDeleteAccount(err.response.data.balance);
+          return;
+        }
+        Alert.alert('Error', 'Failed to delete account.');
+      }
+    };
+
     Alert.alert(
-      'Delete Account',
-      'This is permanent and cannot be undone. Are you sure?',
+      hasCredit ? 'You still have wallet credit' : 'Delete Account',
+      hasCredit
+        ? `You have ${amount} in your wallet. Deleting your account permanently forfeits this credit: it can't be refunded or moved to another account.\n\nIf you'd rather use it, keep your account and spend it in the shop first.`
+        : 'This is permanent and cannot be undone. Are you sure?',
       [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete('/auth/delete');
-              logout();
-            } catch {
-              Alert.alert('Error', 'Failed to delete account.');
-            }
-          },
-        },
+        { text: hasCredit ? 'Keep my account' : 'Cancel', style: 'cancel' },
+        { text: hasCredit ? `Delete & forfeit ${amount}` : 'Delete', style: 'destructive', onPress: confirmDelete },
       ]
     );
   };
@@ -676,7 +686,7 @@ export default function ProfileScreen({ navigation }) {
               <View style={s.divider} />
 
               {/* Danger zone */}
-              <TouchableOpacity style={s.dangerBtn} onPress={handleDeleteAccount} activeOpacity={0.8}>
+              <TouchableOpacity style={s.dangerBtn} onPress={() => handleDeleteAccount()} activeOpacity={0.8}>
                 <Text style={s.dangerBtnText}>DELETE ACCOUNT</Text>
               </TouchableOpacity>
             </View>
