@@ -30,7 +30,10 @@ export default function BarbersSection() {
   );
 }
 
-/* ── Combined barbers list: profiles + working-today toggle ── */
+// Working-day picker, Monday first (values are JS weekdays: 0 = Sunday)
+const WEEK = [[1,'M'],[2,'T'],[3,'W'],[4,'T'],[5,'F'],[6,'S'],[0,'S']];
+
+/* ── Combined barbers list: profiles + working days + today toggle ── */
 function BarbersTab({ T, s }) {
   const [barbers,    setBarbers]    = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
@@ -57,12 +60,28 @@ function BarbersTab({ T, s }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Replace one barber with the server's copy (it works out workingToday)
+  const applyUpdate = (updated) =>
+    setBarbers(prev => prev.map(b => b.id === updated.id ? { ...b, ...updated } : b));
+
+  // "Today only" change: lapses at midnight, then the regular days apply again
   const toggleToday = async (barber) => {
     setToggling(barber.id);
     try {
-      await api.put(`/barber-profiles/${barber.id}/working-today`, { workingToday: !barber.workingToday });
-      setBarbers(prev => prev.map(b => b.id === barber.id ? { ...b, workingToday: !b.workingToday } : b));
+      const { data } = await api.put(`/barber-profiles/${barber.id}/working-today`, { workingToday: !barber.workingToday });
+      applyUpdate(data);
     } catch { Alert.alert('Error', 'Could not update.'); }
+    finally { setToggling(null); }
+  };
+
+  const toggleDay = async (barber, day) => {
+    const current = barber.workingDays || [];
+    const workingDays = current.includes(day) ? current.filter(d => d !== day) : [...current, day];
+    setToggling(barber.id);
+    try {
+      const { data } = await api.put(`/barber-profiles/${barber.id}/working-days`, { workingDays });
+      applyUpdate(data);
+    } catch { Alert.alert('Error', 'Could not save working days.'); }
     finally { setToggling(null); }
   };
 
@@ -143,8 +162,9 @@ function BarbersTab({ T, s }) {
     <>
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
         <Text style={s.hint}>
-          Manage your barbers below. Toggle each one to mark who's in today — this updates
-          the live availability shown to customers on the home screen.
+          Tap the days each barber normally works and the "Who's In Today" chairs update
+          themselves every day. Use the switch for a one-off change (sick day, swapped shift):
+          it only affects today and resets at midnight.
         </Text>
 
         <TouchableOpacity style={s.addBtn} onPress={openAdd} activeOpacity={0.8}>
@@ -165,6 +185,26 @@ function BarbersTab({ T, s }) {
               <View style={{ flex: 1 }}>
                 <Text style={s.barberName}>{b.displayName}</Text>
                 {b.bio ? <Text style={s.barberBio} numberOfLines={2}>{b.bio}</Text> : null}
+                <View style={s.dayRow} accessibilityLabel={`${b.displayName}'s working days`}>
+                  {WEEK.map(([day, label]) => {
+                    const on = (b.workingDays || []).includes(day);
+                    return (
+                      <TouchableOpacity
+                        key={day}
+                        style={[s.dayChip, on && s.dayChipOn]}
+                        onPress={() => toggleDay(b, day)}
+                        disabled={toggling === b.id}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: on }}
+                        accessibilityLabel={['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][day]}
+                      >
+                        <Text style={[s.dayChipText, on && s.dayChipTextOn]}>{label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {!(b.workingDays || []).length && <Text style={s.dayHint}>No working days set yet</Text>}
+                {b.todayIsOverride && <Text style={s.dayHint}>Today only · back to schedule tomorrow</Text>}
               </View>
               {toggling === b.id
                 ? <ActivityIndicator size="small" color="#22c55e" />
@@ -419,6 +459,12 @@ function makeStyles(T) { return StyleSheet.create({
 
   toggleLabel: { fontFamily: T.fontBodyBd, fontSize: 9, letterSpacing: 1, color: T.textFaint, marginTop: 2, textTransform: 'uppercase' },
   toggleLabelOn: { color: '#22c55e' },
+  dayRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8 },
+  dayChip: { width: 28, height: 28, borderRadius: 4, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
+  dayChipOn: { borderColor: T.gold, backgroundColor: T.gold },
+  dayChipText: { fontFamily: T.fontBodyBd, fontSize: 11, color: T.textDim },
+  dayChipTextOn: { color: '#000' },
+  dayHint: { fontFamily: T.fontBody, fontSize: 10, color: T.textFaint, marginTop: 4 },
 
   actionRow: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'flex-end' },
   iconBtn: { width: 34, height: 34, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center', borderRadius: 4 },
