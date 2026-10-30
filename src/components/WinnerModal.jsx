@@ -49,8 +49,8 @@ export default function WinnerModal() {
           <Ionicons name="trophy" size={72} color={T.gold} style={{ marginBottom: 4 }} />
 
           <Text style={s.wonTitle}>YOU WON!</Text>
-          <Text style={s.wonSub}>THIS WEEK'S SNAKE CHAMPION</Text>
-          <Text style={s.wonScore}>SCORE  {win.score}</Text>
+          <Text style={s.wonSub}>THIS WEEK'S {win.game === 'pong' ? 'PONG' : 'SNAKE'} CHAMPION</Text>
+          <Text style={s.wonScore}>{win.game === 'pong' ? `${win.score} WIN${win.score === 1 ? '' : 'S'}` : `SCORE  ${win.score}`}</Text>
 
           <View style={s.prizeBox}>
             <Text style={s.prizeLabel}>YOUR PRIZE</Text>
@@ -58,11 +58,11 @@ export default function WinnerModal() {
           </View>
 
           <Text style={s.claimNote}>
-            Show this screen to staff at the shop to claim your prize
+            It's been added to your Rewards and will be applied on your next visit
           </Text>
 
           <TouchableOpacity style={s.btn} onPress={dismiss} activeOpacity={0.85}>
-            <Text style={s.btnTxt}>CLAIM AT THE SHOP</Text>
+            <Text style={s.btnTxt}>GOT IT</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.dismissBtn} onPress={dismiss} activeOpacity={0.7}>

@@ -235,8 +235,8 @@ export default function PlayScreen() {
             <Text style={s.prizeTitle}>WEEKLY WINNER PRIZE</Text>
             <Text style={s.prizeSub}>
               {weekPrize
-                ? `Participate to win: ${weekPrize}`
-                : 'The top player each Sunday earns a reward. Claim it in store.'}
+                ? `Top the Snake or Pong leaderboard this week to win: ${weekPrize}`
+                : 'The top Snake and Pong players each week earn a reward, added to your profile.'}
             </Text>
             {(() => {
               if (!prizeExpiresAt) return null;
@@ -296,7 +296,7 @@ export default function PlayScreen() {
         <View style={s.boardSection}>
           <View style={s.boardHead}>
             <Ionicons name="stats-chart" size={16} color={T.red} style={{ marginRight: 8 }} />
-            <Text style={s.boardTitle}>PONG LEADERBOARD</Text>
+            <Text style={s.boardTitle}>PONG LEADERBOARD · THIS WEEK</Text>
           </View>
 
           {loadingPongBoard ? (
