@@ -6,7 +6,8 @@ import {
 import api from '../../../api/api';
 import { useTheme } from '../../../context/ThemeContext';
 
-const REWARD_TYPES = ['DISCOUNT_PERCENT', 'DISCOUNT_FIXED', 'FREE_SERVICE', 'MYSTERY_BOX', 'CUSTOM', 'NONE'];
+// Same choices as the website; the backend still understands older values
+const REWARD_TYPES = ['CUSTOM', 'MYSTERY_BOX', 'BONUS_STAMP', 'NONE'];
 const TIER_COLORS = { BRONZE: '#d4a853', SILVER: '#8a93a3', GOLD: '#caa400', PLATINUM: '#7d8aa8' };
 
 const LEVELS = [
@@ -27,7 +28,9 @@ export default function BirthdaySection() {
   useEffect(() => {
     api.get('/birthday/settings')
       .then(r => {
-        const d = r.data;
+        // The API returns { settings: {...} } (reading r.data directly showed
+        // everything as off, and saving then overwrote the real settings)
+        const d = r.data.settings || {};
         setForm({ isActive: d.isActive || false, level1Type: d.level1Type || 'NONE', level1Value: d.level1Value || '', level2Type: d.level2Type || 'NONE', level2Value: d.level2Value || '', level3Type: d.level3Type || 'NONE', level3Value: d.level3Value || '', level4Type: d.level4Type || 'NONE', level4Value: d.level4Value || '' });
       })
       .catch(() => Alert.alert('Error', 'Could not load birthday settings.'))
@@ -75,7 +78,7 @@ export default function BirthdaySection() {
               ))}
             </ScrollView>
 
-            {form[key] !== 'NONE' && form[key] !== 'MYSTERY_BOX' && (
+            {!['NONE', 'MYSTERY_BOX', 'BONUS_STAMP'].includes(form[key]) && (
               <>
                 <Text style={s.fieldLabel}>REWARD VALUE</Text>
                 <TextInput

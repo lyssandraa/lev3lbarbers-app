@@ -149,8 +149,9 @@ function BarbersTab({ T, s }) {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Reset', onPress: async () => {
         try {
+          // The PIN is cleared rather than replaced (there was no "new PIN" to show)
           const r = await api.put(`/auth/admin/users/${b.userId}/reset-pin`);
-          Alert.alert('PIN Reset', `New PIN: ${r.data.pin}`);
+          Alert.alert('PIN Reset', r.data.message || 'PIN cleared. They can set a new one from their profile.');
         } catch { Alert.alert('Error', 'Could not reset PIN.'); }
       }},
     ]);

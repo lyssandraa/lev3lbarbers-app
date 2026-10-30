@@ -20,7 +20,7 @@ export function ShopStatusForm({ onSaved }) {
   const [isOpen,   setIsOpen]   = useState(false);
   const [override, setOverride] = useState(false);
   const [waitTime, setWaitTime] = useState(0);
-  const [barbers,  setBarbers]  = useState(['', '', '']);
+  const [barbers,  setBarbers]  = useState([]);
 
   useEffect(() => {
     api.get('/shop-status')
@@ -29,7 +29,7 @@ export function ShopStatusForm({ onSaved }) {
         setIsOpen(d.isOpen ?? false);
         setOverride(d.override ?? false);
         setWaitTime(d.waitTime ?? 0);
-        setBarbers([(d.barbers?.[0] || ''), (d.barbers?.[1] || ''), (d.barbers?.[2] || '')]);
+        setBarbers(d.barbers || []);
       })
       .catch(() => Alert.alert('Error', 'Could not load shop status.'))
       .finally(() => setLoading(false));
@@ -40,7 +40,6 @@ export function ShopStatusForm({ onSaved }) {
     try {
       await api.put('/shop-status', {
         isOpen, override,
-        barbers: barbers.filter(Boolean),
         waitTime: Number(waitTime),
       });
       onSaved?.();
@@ -100,21 +99,14 @@ export function ShopStatusForm({ onSaved }) {
         </View>
       </View>
 
+      {/* Who's in now comes from each barber's working days (Admin > Barbers);
+          names typed here used to be ignored by the server. */}
       <View style={s.card}>
         <Text style={s.cardLabel}>BARBERS IN TODAY</Text>
-        <Text style={s.help}>Leave blank if not in.</Text>
-        {[0, 1, 2].map(i => (
-          <View key={i} style={s.barberRow}>
-            <View style={s.barberNum}><Text style={s.barberNumText}>{i + 1}</Text></View>
-            <TextInput
-              style={s.barberInput}
-              value={barbers[i]}
-              onChangeText={t => setBarbers(p => { const n = [...p]; n[i] = t; return n; })}
-              placeholder={`Barber ${i + 1} name`}
-              placeholderTextColor={T.textFaint}
-            />
-          </View>
-        ))}
+        <Text style={s.help}>
+          {barbers.filter(Boolean).length ? barbers.filter(Boolean).join(', ') : 'Nobody marked in today.'}
+        </Text>
+        <Text style={s.help}>Set working days or a today-only change under Admin → Barbers.</Text>
       </View>
 
       <TouchableOpacity style={[s.btn, saving && s.btnDim]} onPress={save} disabled={saving} activeOpacity={0.8}>

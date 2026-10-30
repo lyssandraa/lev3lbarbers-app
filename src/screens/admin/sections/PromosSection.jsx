@@ -129,7 +129,8 @@ export default function PromosSection() {
             </View>
             <ScrollView style={{ padding: 20 }}>
               <Text style={s.fieldLabel}>PROMO CODE *</Text>
-              <TextInput style={s.input} value={form.code} onChangeText={set('code')} placeholder="e.g. SUMMER20" placeholderTextColor={T.textFaint} autoCapitalize="characters" />
+              {/* Codes can't be renamed (past orders refer to them by name) */}
+              <TextInput style={[s.input, editing && { opacity: 0.5 }]} value={form.code} onChangeText={set('code')} editable={!editing} placeholder="e.g. SUMMER20" placeholderTextColor={T.textFaint} autoCapitalize="characters" />
 
               <Text style={s.fieldLabel}>DISCOUNT TYPE</Text>
               <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>

@@ -8,7 +8,8 @@ import api from '../../../api/api';
 import { useTheme } from '../../../context/ThemeContext';
 
 const TABS = ['Settings', 'Referrals'];
-const REWARD_TYPES = ['DISCOUNT_PERCENT', 'DISCOUNT_FIXED', 'FREE_SERVICE', 'NONE'];
+// Same choices as the website; the backend still understands older values
+const REWARD_TYPES = ['CUSTOM', 'MYSTERY_BOX', 'BONUS_STAMP', 'NONE'];
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fmtDate = (s) => { if (!s) return '—'; const d = new Date(s); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
 
@@ -38,7 +39,10 @@ function SettingsTab({ T, s }) {
 
   useEffect(() => {
     api.get('/referrals/settings')
-      .then(r => setForm({ isActive: r.data.isActive || false, reward1Type: r.data.reward1Type || 'NONE', reward1: r.data.reward1 || '', reward2Type: r.data.reward2Type || 'NONE', reward2: r.data.reward2 || '', reward3Type: r.data.reward3Type || 'NONE', reward3: r.data.reward3 || '' }))
+      // The API returns { settings: {...} }; reading r.data directly showed
+      // everything as off/empty, and saving then overwrote the real settings
+      .then(r => r.data.settings || {})
+      .then(d => setForm({ isActive: d.isActive || false, reward1Type: d.reward1Type || 'NONE', reward1: d.reward1 || '', reward2Type: d.reward2Type || 'NONE', reward2: d.reward2 || '', reward3Type: d.reward3Type || 'NONE', reward3: d.reward3 || '' }))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -79,7 +83,7 @@ function SettingsTab({ T, s }) {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          {form[typeKey] !== 'NONE' && (
+          {!['NONE', 'MYSTERY_BOX', 'BONUS_STAMP'].includes(form[typeKey]) && (
             <>
               <Text style={s.fieldLabel}>REWARD VALUE</Text>
               <TextInput style={s.input} value={form[valKey]} onChangeText={set(valKey)} placeholder={form[typeKey] === 'DISCOUNT_PERCENT' ? 'e.g. 10 (%)' : form[typeKey] === 'DISCOUNT_FIXED' ? 'e.g. 5.00 (£)' : 'e.g. Free haircut'} placeholderTextColor={T.textFaint} />

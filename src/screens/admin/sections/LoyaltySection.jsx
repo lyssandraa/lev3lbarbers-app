@@ -29,7 +29,8 @@ export default function LoyaltySection() {
   useEffect(() => {
     api.get('/loyalty-settings/settings')
       .then(r => {
-        const d = r.data;
+        // The API returns { settings: {...} }; reading r.data showed every field blank
+        const d = r.data.settings || {};
         const f = {};
         FIELDS.forEach(({ key }) => { f[key] = d[key] != null ? String(d[key]) : ''; });
         setForm(f);

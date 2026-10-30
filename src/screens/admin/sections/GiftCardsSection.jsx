@@ -8,6 +8,12 @@ import api from '../../../api/api';
 import { useTheme } from '../../../context/ThemeContext';
 
 const TABS = ['Denominations', 'Codes', 'Lookup'];
+// The API names gift card fields value / issuedAt / active; this screen was
+// written against amount / createdAt / isVoided, so amounts and dates showed
+// blank and voided cards looked active. Map once, here.
+const fromApiDenom = (d) => ({ ...d, amount: d.value });
+const fromApiCode  = (c) => ({ ...c, amount: c.value, createdAt: c.issuedAt, isVoided: c.active === false });
+
 const fmtCcy = (n) => `£${Number(n || 0).toFixed(2)}`;
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fmtDate = (s) => { if (!s) return '—'; const d = new Date(s); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
@@ -42,7 +48,7 @@ function DenomTab({ T, s }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { const r = await api.get('/gift-cards/denominations/all'); setDenoms(r.data.denominations || r.data || []); }
+    try { const r = await api.get('/gift-cards/denominations/all'); setDenoms((r.data.denominations || r.data || []).map(fromApiDenom)); }
     catch { Alert.alert('Error', 'Could not load denominations.'); }
     finally { setLoading(false); }
   }, []);
@@ -56,7 +62,7 @@ function DenomTab({ T, s }) {
     if (!form.amount) { Alert.alert('Required', 'Amount is required.'); return; }
     setSaving(true);
     try {
-      const body = { amount: Number(form.amount), label: form.label };
+      const body = { value: Number(form.amount), label: form.label };
       if (editing) { await api.put(`/gift-cards/denominations/${editing.id}`, body); }
       else { await api.post('/gift-cards/denominations', body); }
       setShowForm(false); load();
@@ -129,7 +135,7 @@ function CodesTab({ T, s }) {
 
   useEffect(() => {
     api.get('/gift-cards/codes')
-      .then(r => setCodes(r.data.codes || r.data || []))
+      .then(r => setCodes((r.data.codes || r.data || []).map(fromApiCode)))
       .catch(() => Alert.alert('Error', 'Could not load codes.'))
       .finally(() => setLoading(false));
   }, []);
@@ -190,7 +196,9 @@ function LookupTab({ T, s }) {
     setLoading(true); setError(''); setResult(null);
     try {
       const r = await api.get(`/gift-cards/codes/lookup?code=${encodeURIComponent(c)}`);
-      setResult(r.data);
+      // The card is in r.data.giftCard; storing r.data left result.code empty,
+      // so every redeem failed with "Code is required"
+      setResult(fromApiCode(r.data.giftCard));
     } catch (err) { setError(err.response?.data?.message || 'Code not found.'); }
     finally { setLoading(false); }
   };
