@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Modal, Pressable, ScrollView,
+  TextInput, ActivityIndicator, Modal, Pressable, ScrollView, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -79,6 +79,11 @@ export default function StampSection() {
   }, [email]);
 
   const handleQRScan = useCallback((data) => {
+    // The wallet payment QR (a /pay/ link) sits next to the stamp QR
+    if (data.includes('/pay/')) {
+      Alert.alert('Wallet payment code', "That's the customer's wallet QR. Scan it with your phone's camera to charge their wallet, or scan their Stamps QR here.");
+      return;
+    }
     // QR contains the customer's email address directly
     const scannedEmail = data.trim().toLowerCase();
     setEmail(scannedEmail);

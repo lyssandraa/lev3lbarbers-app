@@ -52,8 +52,11 @@ export default function MysteryBoxModal({ visible, reward, onClose, onClaimed })
 
     setPhase('revealing');
     try {
+      // Send which box was tapped: a customer can hold several, and without
+      // this the server revealed whichever it found first
       const r = await api.post('/rewards/reveal-reward', {
         rewardType: reward?.rewardType || 'Mystery box',
+        rewardId: reward?.id,
       });
       setRevealedVal(r.data.rewardValue || 'Mystery Reward');
       setPhase('revealed');
