@@ -16,7 +16,6 @@ import QRCode from 'react-native-qrcode-svg';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
-import { WEBSITE_URL } from '../../config';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -42,8 +41,6 @@ export default function LoyaltyScreen({ navigation }) {
   const [face,         setFace]         = useState('front'); // front | back
   const [showQR,       setShowQR]       = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  // Wallet payment code: staff scan it to charge the customer's wallet at the till
-  const [walletQr,     setWalletQr]     = useState(null);
 
   // Auto-show the QR modal whenever this tab is focused
   useFocusEffect(
@@ -62,7 +59,6 @@ export default function LoyaltyScreen({ navigation }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-    api.get('/wallet/me').then(r => setWalletQr(r.data.qrCode || null)).catch(() => {});
   }, [user, isShopUser]);
 
   if (isShopUser) {
@@ -303,22 +299,6 @@ export default function LoyaltyScreen({ navigation }) {
                   </View>
                   <Text style={s.qrHint}>Show this to your barber to collect stamps</Text>
                 </View>
-
-                {walletQr && (
-                  <View style={s.qrBlock}>
-                    <Text style={s.qrSmallLabel}>Wallet Payment</Text>
-                    <View style={s.qrWrap}>
-                      <QRCode
-                        value={`${WEBSITE_URL}/pay/${encodeURIComponent(walletQr)}`}
-                        size={140}
-                        backgroundColor="#ffffff"
-                        color="#1a1a1a"
-                        ecl="H"
-                      />
-                    </View>
-                    <Text style={s.qrHint}>Show this to pay with your wallet balance</Text>
-                  </View>
-                )}
 
                 <Text style={s.flipHint}>← Tap to flip back</Text>
               </View>

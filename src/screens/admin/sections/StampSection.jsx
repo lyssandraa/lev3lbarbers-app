@@ -47,6 +47,8 @@ export default function StampSection() {
   const [showPopup,    setShowPopup]    = useState(false);
   const [showCamera,   setShowCamera]   = useState(false);
   const [scanned,      setScanned]      = useState(false);
+  const [chargeAmount, setChargeAmount] = useState('');
+  const [charging,     setCharging]     = useState(false);
 
   const [showCalc,      setShowCalc]      = useState(false);
   const [allServices,   setAllServices]   = useState(null);
@@ -69,7 +71,7 @@ export default function StampSection() {
   const lookupUser = useCallback(async (overrideEmail) => {
     const q = (overrideEmail ?? email).trim();
     if (!q) return;
-    setLoading(true); clear(); setUserData(null);
+    setLoading(true); clear(); setUserData(null); setChargeAmount('');
     try {
       const res = await api.get(`/stamps/user?email=${encodeURIComponent(q)}`);
       setUserData(res.data);
@@ -115,6 +117,27 @@ export default function StampSection() {
     setShowCamera(false);
     handleQRScan(data);
   }, [scanned, handleQRScan]);
+
+  const chargeWallet = () => {
+    const amount = Math.round(parseFloat(chargeAmount) * 100) / 100;
+    clear();
+    if (!amount || amount <= 0) { setError('Enter an amount to charge.'); return; }
+    if (amount > userData.walletBalance) { setError(`Only £${userData.walletBalance.toFixed(2)} in this wallet.`); return; }
+    Alert.alert('Charge wallet', `Take £${amount.toFixed(2)} from ${userData.name || 'this customer'}'s wallet?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Charge', onPress: async () => {
+        setCharging(true);
+        try {
+          const res = await api.post('/wallet/charge', { qrCode: userData.walletCode, amount });
+          setUserData(u => ({ ...u, walletBalance: res.data.remainingBalance }));
+          setChargeAmount('');
+          setSuccess(`£${res.data.charged.toFixed(2)} taken from wallet. £${res.data.remainingBalance.toFixed(2)} left.`);
+        } catch (err) {
+          setError(err.response?.data?.message || 'Could not charge the wallet.');
+        } finally { setCharging(false); }
+      }},
+    ]);
+  };
 
   const addStamp = async () => {
     if (!userData) return;
@@ -300,6 +323,25 @@ export default function StampSection() {
                     <Ionicons name="gift" size={12} color={tierColor} /> {r.rewardValue || r.rewardType}
                   </Text>
                 ))}
+              </View>
+            )}
+
+            {userData.walletBalance > 0 && (
+              <View style={[s.pending, { borderColor: tierColor + '55' }]}>
+                <Text style={s.pendingTitle}>Wallet credit: £{userData.walletBalance.toFixed(2)}</Text>
+                <View style={s.chargeRow}>
+                  <TextInput
+                    style={s.chargeInput}
+                    value={chargeAmount}
+                    onChangeText={setChargeAmount}
+                    placeholder="£ amount"
+                    placeholderTextColor={T.textFaint}
+                    keyboardType="decimal-pad"
+                  />
+                  <TouchableOpacity style={[s.chargeBtn, charging && s.btnDim]} onPress={chargeWallet} disabled={charging} activeOpacity={0.8}>
+                    {charging ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.chargeBtnText}>CHARGE</Text>}
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
@@ -552,5 +594,9 @@ function makeStyles(T) { return StyleSheet.create({
 
   btn: { backgroundColor: T.red, paddingVertical: 15, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 10, minHeight: 50 },
   btnDim: { opacity: 0.4 },
+  chargeRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  chargeInput: { flex: 1, borderWidth: 1, borderColor: T.border, color: T.text, fontFamily: T.fontBody, fontSize: 15, paddingHorizontal: 12, paddingVertical: 10 },
+  chargeBtn: { backgroundColor: T.red, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', minWidth: 96 },
+  chargeBtnText: { fontFamily: T.fontHead, fontSize: 14, letterSpacing: 2, color: '#fff' },
   btnText: { fontFamily: T.fontHead, fontSize: 15, letterSpacing: 3, color: '#fff' },
 }); }
