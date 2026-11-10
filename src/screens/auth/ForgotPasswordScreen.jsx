@@ -48,7 +48,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         <TouchableOpacity style={s.closeBtn} onPress={handleClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Text style={s.closeText}>✕</Text>
         </TouchableOpacity>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
 
           <Text style={s.wordmark}>LEV3L BARBERS</Text>
           <View style={s.accentRule} />

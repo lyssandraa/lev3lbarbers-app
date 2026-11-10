@@ -409,7 +409,7 @@ export default function ShopScreen() {
         </View>
       )}
 
-      <ScrollView ref={scrollRef} style={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets ref={scrollRef} style={s.scroll} showsVerticalScrollIndicator={false}>
 
         {loading ? (
           // Skeleton loading
@@ -518,7 +518,7 @@ export default function ShopScreen() {
             {/* flexGrow:0/flexShrink:1, not flex:1 — cartSheet only has a
                 maxHeight cap (auto height otherwise), so a flex:1 child has
                 no definite space to fill and can collapse to zero height. */}
-            <ScrollView style={{ flexGrow: 0, flexShrink: 1 }}>
+            <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ flexGrow: 0, flexShrink: 1 }}>
               {cart.length === 0 ? (
                 <View style={{ padding: 32, alignItems: 'center' }}>
                   <Text style={{ fontFamily: T.fontBodyMd, fontSize: 13, color: T.textDim }}>Your cart is empty.</Text>

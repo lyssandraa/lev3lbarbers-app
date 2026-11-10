@@ -68,7 +68,7 @@ function HoursTab({ T, s }) {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
       {DAY_KEYS.map(day => {
         const d = hours[day] || { closed: false, open: '09:00', close: '18:00' };
         return (
@@ -134,7 +134,7 @@ function InfoTab({ T, s }) {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
       {[
         { key: 'address',      label: 'ADDRESS' },
         { key: 'city',         label: 'CITY' },

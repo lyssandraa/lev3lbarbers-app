@@ -58,7 +58,7 @@ export default function ExpirySection() {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
       <View style={s.card}>
         <Text style={s.cardLabel}>REWARD EXPIRY SETTINGS</Text>
         <Text style={s.intro}>Set to 0 or leave blank to disable expiry for that reward type.</Text>

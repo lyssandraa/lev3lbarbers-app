@@ -61,7 +61,7 @@ function SettingsTab({ T, s }) {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
       <View style={s.card}>
         <Text style={s.cardLabel}>REFERRAL SYSTEM</Text>
         <View style={s.switchRow}>
@@ -116,7 +116,7 @@ function ReferralList({ T, s }) {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <FlatList
+    <FlatList keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
       data={referrals}
       keyExtractor={r => String(r.id)}
       contentContainerStyle={{ padding: 12, paddingBottom: 40 }}

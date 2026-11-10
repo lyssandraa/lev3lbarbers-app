@@ -57,7 +57,7 @@ export default function ServiceFormModal({ visible, editing, onClose, onSaved })
               <Ionicons name="close" size={20} color={T.text} />
             </TouchableOpacity>
           </View>
-          <ScrollView style={{ padding: 20 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ padding: 20 }}>
             <Text style={s.fieldLabel}>NAME *</Text>
             <TextInput style={s.input} value={form.name} onChangeText={set('name')} placeholder="e.g. Classic Haircut" placeholderTextColor={T.textFaint} />
             <Text style={s.fieldLabel}>DESCRIPTION</Text>

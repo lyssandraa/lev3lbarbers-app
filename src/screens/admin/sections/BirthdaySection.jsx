@@ -51,7 +51,7 @@ export default function BirthdaySection() {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
       <View style={s.card}>
         <Text style={s.cardLabel}>BIRTHDAY REWARDS</Text>
         <Text style={s.hint}>Members receive a birthday reward based on their tier during their birthday window.</Text>

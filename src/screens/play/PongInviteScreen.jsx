@@ -126,7 +126,7 @@ export default function PongInviteScreen() {
         {searching && <ActivityIndicator color={T.red} style={{ marginTop: 24 }} />}
 
         {!searching && results.length > 0 && (
-          <FlatList
+          <FlatList keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
             data={results}
             keyExtractor={item => String(item.id)}
             style={{ marginTop: 8 }}

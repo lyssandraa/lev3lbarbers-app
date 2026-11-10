@@ -272,7 +272,7 @@ export default function BookingsScreen() {
     <SafeAreaView style={s.safe} edges={['top']}>
       <StepBar step={step} />
 
-      <ScrollView ref={scrollRef} style={s.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} style={s.scroll} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
 
         {/* ── Step 0: Pick Service ── */}
         {step === 0 && (

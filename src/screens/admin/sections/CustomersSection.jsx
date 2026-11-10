@@ -117,7 +117,7 @@ export default function CustomersSection() {
       {loading ? (
         <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />
       ) : (
-        <FlatList
+        <FlatList keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
           data={users}
           keyExtractor={u => String(u.id)}
           contentContainerStyle={s.list}
@@ -167,7 +167,7 @@ export default function CustomersSection() {
               <Ionicons name="close" size={18} color={T.text} />
             </TouchableOpacity>
             {selected && (
-              <ScrollView style={s.sheetScroll} showsVerticalScrollIndicator={false}>
+              <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.sheetScroll} showsVerticalScrollIndicator={false}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                   <View style={[s.avatar, s.avatarLg]}>
                     <Text style={[s.avatarText, { fontSize: 22 }]}>{(selected.name || selected.email || '?')[0].toUpperCase()}</Text>

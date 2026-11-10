@@ -214,7 +214,7 @@ export default function WhatsOnScreen({ navigation, route }) {
           <Text style={s.emptyText}>{search ? 'No posts match your search.' : 'Check back soon.'}</Text>
         </View>
       ) : (
-        <FlatList
+        <FlatList keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
           data={[...pinned, ...regular]}
           keyExtractor={p => String(p.id)}
           renderItem={renderCard}

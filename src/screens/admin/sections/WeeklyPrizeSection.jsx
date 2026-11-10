@@ -72,7 +72,7 @@ export default function WeeklyPrizeSection() {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.wrap}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.wrap}>
       <View style={s.hint}>
         <Ionicons name="information-circle-outline" size={15} color={T.textDim} />
         <Text style={s.hintTxt}>

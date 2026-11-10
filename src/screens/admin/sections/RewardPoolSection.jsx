@@ -253,7 +253,7 @@ export default function RewardPoolSection() {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
       <View style={s.introBox}>
         <Text style={s.introTitle}>How rewards work</Text>
         <Text style={s.introText}>There are two ways a customer can get a reward when they hit a reward stamp.</Text>

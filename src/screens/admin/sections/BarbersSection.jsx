@@ -161,7 +161,7 @@ function BarbersTab({ T, s }) {
 
   return (
     <>
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+      <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
         <Text style={s.hint}>
           Tap the days each barber normally works and the "Who's In Today" chairs update
           themselves every day. Use the switch for a one-off change (sick day, swapped shift):
@@ -265,7 +265,7 @@ function BarbersTab({ T, s }) {
                 <Ionicons name="close" size={20} color={T.text} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={s.formScroll}>
+            <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.formScroll}>
               <Text style={s.fieldLabel}>NAME *</Text>
               <TextInput
                 style={s.input}
@@ -372,7 +372,7 @@ function AvailabilityTab({ T, s }) {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
       <Text style={s.fieldLabel}>SELECT BARBER</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
         {barbers.map(b => (

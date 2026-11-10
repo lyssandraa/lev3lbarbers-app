@@ -94,7 +94,7 @@ export default function WhatsOnPostFormModal({ visible, editing, onClose, onSave
               <Ionicons name="close" size={20} color={T.text} />
             </TouchableOpacity>
           </View>
-          <ScrollView style={{ padding: 20 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ padding: 20 }}>
             <Text style={s.fieldLabel}>TITLE *</Text>
             <TextInput style={s.input} value={form.title} onChangeText={set('title')} placeholder="Post title" placeholderTextColor={T.textFaint} />
 

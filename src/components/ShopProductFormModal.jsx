@@ -90,7 +90,7 @@ export default function ShopProductFormModal({ visible, editing, onClose, onSave
               <Ionicons name="close" size={20} color={T.text} />
             </TouchableOpacity>
           </View>
-          <ScrollView style={{ padding: 20 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ padding: 20 }}>
             <TouchableOpacity style={s.photoTile} onPress={pickPhoto} activeOpacity={0.8}>
               {photoUri ? (
                 <Image source={{ uri: photoUri }} style={s.photoImg} resizeMode="cover" />

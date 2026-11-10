@@ -76,7 +76,7 @@ export default function PromosSection() {
 
   return (
     <>
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+      <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
         <TouchableOpacity style={s.addBtn} onPress={openAdd} activeOpacity={0.8}>
           <Ionicons name="add" size={16} color="#fff" />
           <Text style={s.addBtnText}>NEW PROMO CODE</Text>
@@ -127,7 +127,7 @@ export default function PromosSection() {
               <Text style={s.sheetTitle}>{editing ? 'EDIT PROMO' : 'NEW PROMO'}</Text>
               <TouchableOpacity onPress={() => setShowForm(false)}><Ionicons name="close" size={20} color={T.text} /></TouchableOpacity>
             </View>
-            <ScrollView style={{ padding: 20 }}>
+            <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ padding: 20 }}>
               <Text style={s.fieldLabel}>PROMO CODE *</Text>
               {/* Codes can't be renamed (past orders refer to them by name) */}
               <TextInput style={[s.input, editing && { opacity: 0.5 }]} value={form.code} onChangeText={set('code')} editable={!editing} placeholder="e.g. SUMMER20" placeholderTextColor={T.textFaint} autoCapitalize="characters" />

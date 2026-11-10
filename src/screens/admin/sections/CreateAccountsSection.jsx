@@ -43,7 +43,7 @@ export default function CreateAccountsSection({ mode }) {
   };
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
       <View style={s.card}>
         <Text style={s.cardLabel}>CREATE {label} ACCOUNT</Text>
         <Text style={s.hint}>

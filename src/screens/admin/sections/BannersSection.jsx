@@ -89,7 +89,7 @@ export default function BannersSection() {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
       <View style={s.card}>
         <Text style={s.cardLabel}>ADD BANNER</Text>
         <Text style={s.hint}>Choose where this banner will appear, then write the message.</Text>

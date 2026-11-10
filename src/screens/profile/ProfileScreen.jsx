@@ -348,7 +348,7 @@ export default function ProfileScreen({ navigation }) {
         </ScrollView>
       </View>
 
-      <ScrollView ref={scrollRef} style={s.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} style={s.scroll} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
 
         {/* ── Overview ── */}
         {activeTab === 'overview' && (

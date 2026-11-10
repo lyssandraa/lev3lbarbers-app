@@ -84,7 +84,7 @@ function DenomTab({ T, s }) {
 
   return (
     <>
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+      <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
         <TouchableOpacity style={s.addBtn} onPress={openAdd} activeOpacity={0.8}>
           <Ionicons name="add" size={16} color="#fff" />
           <Text style={s.addBtnText}>ADD DENOMINATION</Text>
@@ -157,7 +157,7 @@ function CodesTab({ T, s }) {
   if (loading) return <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />;
 
   return (
-    <FlatList
+    <FlatList keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
       data={codes}
       keyExtractor={c => String(c.id)}
       contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
@@ -215,7 +215,7 @@ function LookupTab({ T, s }) {
   };
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
       <View style={s.card}>
         <Text style={s.cardLabel}>GIFT CARD LOOKUP</Text>
         <Text style={s.fieldLabel}>CODE</Text>

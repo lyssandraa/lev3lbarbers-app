@@ -223,11 +223,11 @@ export default function StampSection() {
   const tierColor = userData ? (TIER_COLORS[userData.tier] || TIER_COLORS.BRONZE) : T.red;
 
   return (
-    <View style={s.wrap}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.wrap} contentContainerStyle={{ paddingBottom: 40 }}>
       <View style={s.card}>
         <Text style={s.cardLabel}>STAMP MANAGER</Text>
         <Text style={s.help}>
-          Ask the customer to open their Scan tab and show their QR code. Scan it directly, or type their email below.
+          Ask the customer to open their Scan tab and show their QR code. Scan it directly, or type their email or username below.
         </Text>
 
         {!userData && (
@@ -240,17 +240,17 @@ export default function StampSection() {
 
             <View style={s.dividerRow}>
               <View style={s.dividerLine} />
-              <Text style={s.dividerText}>or enter email manually</Text>
+              <Text style={s.dividerText}>or enter email or username</Text>
               <View style={s.dividerLine} />
             </View>
 
-            <Text style={s.label}>CUSTOMER EMAIL</Text>
+            <Text style={s.label}>CUSTOMER EMAIL OR USERNAME</Text>
             <View style={s.inputRow}>
               <TextInput
                 style={s.input}
                 value={email}
                 onChangeText={t => { setEmail(t); clear(); }}
-                placeholder="customer@example.com"
+                placeholder="email or username"
                 placeholderTextColor={T.textFaint}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -427,7 +427,7 @@ export default function StampSection() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
+            <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
               <Text style={s.calcSectionLabel}>SERVICES DONE</Text>
               {calcLoading ? (
                 <ActivityIndicator color={T.red} style={{ marginVertical: 20 }} />
@@ -502,7 +502,7 @@ export default function StampSection() {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
 

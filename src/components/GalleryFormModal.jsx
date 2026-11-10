@@ -103,7 +103,7 @@ export default function GalleryFormModal({ visible, editing, onClose, onSaved })
               <Ionicons name="close" size={20} color={T.text} />
             </TouchableOpacity>
           </View>
-          <ScrollView style={{ padding: 20 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ padding: 20 }}>
             <Text style={s.fieldLabel}>TITLE *</Text>
             <TextInput style={s.input} value={title} onChangeText={setTitle} placeholder="e.g. Skin Fade" placeholderTextColor={T.textFaint} />
             <Text style={s.fieldLabel}>DESCRIPTION</Text>

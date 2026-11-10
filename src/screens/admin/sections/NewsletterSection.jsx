@@ -54,7 +54,7 @@ export default function NewsletterSection() {
   const canSend = subject.trim() && message.trim() && !sending;
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={s.scroll} contentContainerStyle={s.content}>
       <View style={s.card}>
         <Text style={s.cardLabel}>NEWSLETTER</Text>
         <Text style={s.intro}>
